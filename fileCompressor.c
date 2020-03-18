@@ -25,7 +25,7 @@ typedef struct _heapItem { //need to see whether or not tree is set
 	boolean isTree;// all vals will be false, unless we ourselves insert a tree
 }heapItem;
 
-heapItem* heapInit();//initializes the heap with frequencies of -1
+void heapInit();//initializes the heap with frequencies of -1
 void printHeap();//prints out all the frequencies within the heap and their words
 void heapify();//converts our array into a heap after we read in all the data
 char* copyString(char*,char*);//copies a string from another word and properly inserts null terminator
@@ -33,6 +33,8 @@ void bstInsert(char*);//inserts a word into our bst in alphabetical ordering
 int bstSearch(char*);//searches for bst item and increments it's frequency if found
 int compareString(char*,char*);//compares two strings and returns a negative number if the first one is lesser, and a pos number if the first one is greater 
 void printBst(Node*);//prints out the BST items
+void constructHeap(); //helper function to heapify our stuff
+void heapify(int); //turns our array into a heap
 
 Node* root;//our tree node, initially we store all the values in here and then into our heap
 int nodeCount = 0;//amount of items in our tree
@@ -40,8 +42,7 @@ int nodeCount = 0;//amount of items in our tree
 boolean rootSet = false;//indicates whether or not root is set
 
 heapItem* heapArr;//our array of vals to start our huffman tree
-
-int heapSize = 10; //temporary, for testing purposes
+int heapCount = 0; //temporary, for testing purposes
 
 int main(int argc, char** argv) {
 	
@@ -49,26 +50,60 @@ int main(int argc, char** argv) {
 	bstInsert("cat\0");
 	bstInsert("dog\0");
 	bstInsert("bat\0");
-	heapArr = heapInit();
-	printHeap();
+	bstInsert("swag\0");
+	bstInsert("bat\0");
+	bstInsert("dog\0");
+	heapInit();
+	printf("PRINTING BST\n");
 	printBst(root);
+	constructHeap();
+	printHeap();
 	return 0;
 }
 
-heapItem* heapInit() {
-
-	heapItem* arr = (heapItem*)malloc(nodeCount * sizeof(heapItem));
+void heapInit() {
+	heapArr = (heapItem*)malloc(nodeCount * sizeof(heapItem));
 	int i;
 	for (i = 0; i < nodeCount; i++) {
-		arr[i].freq = -1; //indicates no item is inserted
-		arr[i].isTree = false;
+		heapArr[i].freq = -1; //indicates no item is inserted
+		heapArr[i].isTree = false;
+	}
+}
+
+void constructHeap() {
+	int start = (nodeCount/2) - 1;
+	int i;
+	for (i = start; i >= 0; i--) {
+		heapify(i);
+	}
+}
+
+void heapify(int index) {
+	int small = index;
+	int left = (index * 2) + 1;
+	int right = (index * 2) + 1;
+	if ( left < nodeCount && heapArr[left].freq < heapArr[small].freq) {
+		small = left;
 	}
 	
-	return arr;
+	if ( right < nodeCount && heapArr[right].freq < heapArr[small].freq) {
+		small = right;
+	}
+	
+	if (small != index) {//swaps the two values and continues to heapify
+		char* tWord;
+		int tFreq = heapArr[small].freq;
+		copyString(tWord,heapArr[small].word);
+		copyString(heapArr[small].word,heapArr[index].word);
+		heapArr[small].freq = heapArr[index].freq;
+		copyString(heapArr[index].word,tWord);
+		heapArr[index].freq = tFreq;
+		heapify(small);
+	}
 }
 
 void printHeap() {
-
+	printf("PRINTING HEAP\n");
 	int i;
 	for (i = 0; i < nodeCount; i++) {
 		printf("%s: %d, %d\n",heapArr[i].word,heapArr[i].freq,heapArr[i].isTree);
@@ -95,12 +130,12 @@ void bstInsert(char* word) {
 		while (ptr != NULL) {
 			if (compareString(ptr->word, word) > 0) {
 				prev = ptr;
-				ptr = ptr->right;
-				left = false;
-			} else if (compareString(ptr->word,word) < 0) {
-				prev = ptr;
 				ptr = ptr->left;
 				left = true;
+			} else if (compareString(ptr->word,word) < 0) {
+				prev = ptr;
+				ptr = ptr->right;
+				left = false;
 			}
 		}
 		Node* temp = (Node*)malloc(sizeof(Node));
@@ -137,9 +172,11 @@ void printBst(Node* ptr) {
 	if (ptr == NULL) {
 		return;
 	}
-	
 	printBst(ptr->left);
 	printf("BST_NODE: %s: %d\n",ptr->word,ptr->freq);
+	heapArr[heapCount].word = copyString(heapArr[heapCount].word,ptr->word);
+	heapArr[heapCount].freq = ptr->freq;
+	heapCount++;
 	printBst(ptr->right);
 }
 
