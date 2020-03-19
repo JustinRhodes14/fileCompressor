@@ -29,16 +29,16 @@ typedef struct _heapItem { //need to see whether or not tree is set
 }heapItem;
 
 void heapInit();//initializes the heap with frequencies of -1
-void printHeap();//prints out all the frequencies within the heap and their words
-void heapify();//converts our array into a heap after we read in all the data
-char* copyString(char*,char*);//copies a string from another word and properly inserts null terminator
-char* combineString(char* str1, char* str2); //combines two strings and returns combined string: String result = str1+str2;
-void bstInsert(char*);//inserts a word into our bst in alphabetical ordering
-int bstSearch(char*);//searches for bst item and increments it's frequency if found
-int compareString(char*,char*);//compares two strings and returns a negative number if the first one is lesser, and a pos number if the first one is greater 
-void printBst(Node*);//prints out the BST items
 void constructHeap(); //helper function to heapify our stuff
 void heapify(int); //turns our array into a heap
+void printHeap();//prints out all the frequencies within the heap and their words
+void bstInsert(char*);//inserts a word into our bst in alphabetical ordering
+int bstSearch(char*);//searches for bst item and increments it's frequency if found
+void printBst(Node*);//prints out the BST items
+char* copyString(char*,char*);//copies a string from another word and properly inserts null terminator
+char* combineString(char* str1, char* str2); //combines two strings and returns combined string: String result = str1+str2;
+char* substring(char* str, int index); //cuts a string starting from a certain index
+int compareString(char*,char*);//compares two strings and returns a negative number if the first one is lesser, and a pos number if the first one is greater 
 
 Node* root;//our tree node, initially we store all the values in here and then into our heap
 int nodeCount = 0;//amount of items in our tree
@@ -92,17 +92,20 @@ int main(int argc, char** argv) {
 	} else {
 		if (flag == 'b') {
 			char* directory = argv[2]; //all files within this directory will be indexed into HuffmanCodebook
+			directory = substring(directory, 1);
+			if (strlen(directory) != 1) {
+				directory = combineString(directory, "/");
+			}
 			printf("directory is: %s\n", directory);			
 
 			int fd;
 			mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-			char* filename = "/ilab/users/grf27/cs214/asst1/fileCompressor/file.txt";
+			char* filename = combineString(directory, "HuffmanCodebook");
+			printf("filename is: %s\n\n", filename);
 			fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, mode);
 
-			printf("fd is: %d\n\n", fd);
+			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 
-			char* combined = combineString(directory, "HuffmanCodebook");
-			printf("combined is: %s\n\n", combined);
 		} else if (flag == 'c') {
 
 		} else if (flag == 'd') {
@@ -314,8 +317,6 @@ int compareString(char* str1, char* str2) {
 		return 1;
 	}
 	return 0;//equal strings
-	
-	
 }
 
 
