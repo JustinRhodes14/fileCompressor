@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 //BSTNode structure, to create one follow following format:
 //	Node* <name> = (Node*)malloc(sizeof(Node));
 //Making an array of BSTNodes is as follows:
@@ -29,6 +32,7 @@ void heapInit();//initializes the heap with frequencies of -1
 void printHeap();//prints out all the frequencies within the heap and their words
 void heapify();//converts our array into a heap after we read in all the data
 char* copyString(char*,char*);//copies a string from another word and properly inserts null terminator
+char* combineString(char* str1, char* str2); //combines two strings and returns combined string: String result = str1+str2;
 void bstInsert(char*);//inserts a word into our bst in alphabetical ordering
 int bstSearch(char*);//searches for bst item and increments it's frequency if found
 int compareString(char*,char*);//compares two strings and returns a negative number if the first one is lesser, and a pos number if the first one is greater 
@@ -45,7 +49,7 @@ heapItem* heapArr;//our array of vals to start our huffman tree
 int heapCount = 0; //temporary, for testing purposes
 
 int main(int argc, char** argv) {
-	/* 	
+	/*	for testing purposes, argument checkers are commented out 	
 	if (argc < 3) {
 		printf("Fatal Error: expected at least 3 arguments\n");
 		exit(0);
@@ -55,7 +59,7 @@ int main(int argc, char** argv) {
 	}
 	*/
 
-	
+	//check flag
 	char flag;
 	boolean recursive = false;
 	if (argv[1][1] != 'R') {
@@ -75,6 +79,36 @@ int main(int argc, char** argv) {
 	} else {
 		printf("recursive flag off\n\n");
 	}
+
+	//call flag functions
+	if (recursive) {
+		if (flag == 'b') {
+
+		} else if (flag == 'c') {
+
+		} else if (flag == 'd') {
+
+		}
+	} else {
+		if (flag == 'b') {
+			char* directory = argv[2]; //all files within this directory will be indexed into HuffmanCodebook
+			printf("directory is: %s\n", directory);			
+
+			int fd;
+			mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+			char* filename = "/ilab/users/grf27/cs214/asst1/fileCompressor/file.txt";
+			fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, mode);
+
+			printf("fd is: %d\n\n", fd);
+
+			char* combined = combineString(directory, "HuffmanCodebook");
+			printf("combined is: %s\n\n", combined);
+		} else if (flag == 'c') {
+
+		} else if (flag == 'd') {
+
+		}
+	}	
 
 	bstInsert("dog\0");
 	bstInsert("cat\0");
@@ -219,6 +253,37 @@ char* copyString(char* to, char* from) {
 	}
 	to[length] = '\0';
 	return to;
+} 
+
+char* combineString(char* str1, char* str2) {
+	int len1 = strlen(str1);
+	int len2 = strlen(str2);
+	char* result = (char*)malloc((len1+len2)*sizeof(char) + 1);
+	int i;
+	int j = 0;
+	for ( i = 0; i < len1; i++) {
+		result[i] = str1[i];
+		j++;
+	}
+	for ( i = 0; i < len2; i++) {
+		result[j] = str2[i];
+		j++;
+	}
+	result[len1 + len2] = '\0';
+	return result;
+}
+
+char* substring(char* str, int index) {
+	int length = strlen(str);
+	char* result = (char*)malloc((length-index)*sizeof(char) + 1);
+	int i;
+	int j = 0;
+	for ( i = index; i < length; i++) {
+		result[j] = str[i];
+		j++;
+	}
+	result[length-index] = '\0';
+	return result;
 }
 
 int compareString(char* str1, char* str2) {
