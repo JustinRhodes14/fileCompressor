@@ -185,7 +185,7 @@ void bstInsert(char* word) {
 		root->word = copyString(root->word,word);
 		root->left = NULL;
 		root->right = NULL;
-		root->freqSet = true;
+		root->freqSet = false;
 		rootSet = true;
 		nodeCount++;
 	} else if (bstSearch(word) == 1) {//1 indicates successfully found and incremented frequency
@@ -210,7 +210,7 @@ void bstInsert(char* word) {
 		temp->word = copyString(temp->word,word);
 		temp->left = NULL;
 		temp->right = NULL;
-		temp->freqSet = true;
+		temp->freqSet = false;
 		if (left == true) {
 			prev->left = temp;
 		} else {
