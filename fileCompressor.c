@@ -45,7 +45,37 @@ heapItem* heapArr;//our array of vals to start our huffman tree
 int heapCount = 0; //temporary, for testing purposes
 
 int main(int argc, char** argv) {
+	/* 	
+	if (argc < 3) {
+		printf("Fatal Error: expected at least 3 arguments\n");
+		exit(0);
+	} else if (argc > 5) {
+		printf("Fatal Error: expected at most 5 arguments\n");
+		exit(0);
+	}
+	*/
+
 	
+	char flag;
+	boolean recursive = false;
+	if (argv[1][1] != 'R') {
+		flag = argv[1][1];
+		if (argv[2][0] == '-') {
+			recursive = true;
+		}
+		printf("flag is: %c\n", argv[1][1]);
+	} else {
+		printf("flag is %c\n", argv[2][1]);
+		flag = argv[2][1];
+		recursive = true;
+	}
+
+	if (recursive == true) { //just to check
+		printf("recursive flag on\n\n");
+	} else {
+		printf("recursive flag off\n\n");
+	}
+
 	bstInsert("dog\0");
 	bstInsert("cat\0");
 	bstInsert("dog\0");
