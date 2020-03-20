@@ -107,6 +107,11 @@ int main(int argc, char** argv) {
 			mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 			file = open(path, O_RDONLY, mode);	
 
+			char temp[101];
+			int a = read(file, temp, 100);
+			temp[100] = '\0';
+			printf("temp is: %s\n", temp);
+
 			int fd;
 			printf("location of codebook is: %s\n\n", path);
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC, mode);
