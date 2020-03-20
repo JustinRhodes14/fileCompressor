@@ -38,7 +38,7 @@ int bstSearch(char*);//searches for bst item and increments it's frequency if fo
 void printBst(Node*);//prints out the BST items
 char* copyString(char*,char*);//copies a string from another word and properly inserts null terminator
 char* combineString(char* str1, char* str2); //combines two strings and returns combined string: String result = str1+str2;
-char* substring(char* str, int index); //cuts a string starting from a certain index
+char* substring(char* str, int start, int end); //cuts a string starting from a certain index
 int compareString(char*,char*);//compares two strings and returns a negative number if the first one is lesser, and a pos number if the first one is greater 
 
 Node* root;//our tree node, initially we store all the values in here and then into our heap
@@ -100,18 +100,16 @@ int main(int argc, char** argv) {
 		}
 	} else {
 		if (flag == 'b') {
-			char* directory = argv[2]; //all files within this directory will be indexed into HuffmanCodebook
-			directory = substring(directory, 1);
-			if (strlen(directory) != 1) {
-				directory = combineString(directory, "/");
-			}
-			printf("directory is: %s\n", directory);			
+			char* path = argv[2]; //all files within this directory will be indexed into HuffmanCodebook
+			printf("path is: %s\n", path);
+			
+			int file;
+			mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+			file = open(path, O_RDONLY, mode);	
 
 			int fd;
-			mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-			char* filename = combineString(directory, "HuffmanCodebook");
-			printf("filename is: %s\n\n", filename);
-			fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, mode);
+			printf("location of codebook is: %s\n\n", path);
+			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC, mode);
 
 			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 		} else if (flag == 'c') {
@@ -295,16 +293,28 @@ char* combineString(char* str1, char* str2) {
 	return result;
 }
 
-char* substring(char* str, int index) {
-	int length = strlen(str);
-	char* result = (char*)malloc((length-index)*sizeof(char) + 1);
-	int i;
-	int j = 0;
-	for ( i = index; i < length; i++) {
-		result[j] = str[i];
-		j++;
+char* substring(char* str, int start, int end) {
+	char* result;
+	if (end == -1) {
+		int length = strlen(str);
+		result = (char*)malloc((length-start)*sizeof(char) + 1);
+		int i;
+		int j = 0;
+		for ( i = start; i < length; i++) {
+			result[j] = str[i];
+			j++;
+		}
+		result[length-start] = '\0';
+	} else {
+		result = (char*)malloc((end-start)*sizeof(char) + 1);
+		int i;
+		int j = 0;
+		for ( i = start; i < end; i++) {
+			result[j] = str[i];
+			j++;
+		}	
+		result[end-start+1] = '\0';
 	}
-	result[length-index] = '\0';
 	return result;
 }
 
