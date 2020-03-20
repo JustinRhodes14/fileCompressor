@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <dirent.h>
 //BSTNode structure, to create one follow following format:
 //	Node* <name> = (Node*)malloc(sizeof(Node));
 //Making an array of BSTNodes is as follows:
@@ -83,7 +84,15 @@ int main(int argc, char** argv) {
 	//call flag functions
 	if (recursive) {
 		if (flag == 'b') {
-
+			DIR *d;
+			struct dirent *dir;
+			d = opendir("./stuff");	
+			if (d) {
+				while ((dir = readdir(d)) != NULL) {
+					printf("%s\n",dir->d_name);
+				}
+				closedir(d);
+			}
 		} else if (flag == 'c') {
 
 		} else if (flag == 'd') {
@@ -105,21 +114,31 @@ int main(int argc, char** argv) {
 			fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, mode);
 
 			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
-
 		} else if (flag == 'c') {
 
 		} else if (flag == 'd') {
 
 		}
 	}	
-
-	bstInsert("dog\0");
-	bstInsert("cat\0");
-	bstInsert("dog\0");
-	bstInsert("bat\0");
-	bstInsert("swag\0");
-	bstInsert("bat\0");
-	bstInsert("dog\0");
+	int i;
+	for (i = 0; i < 5; i++) {
+		bstInsert("a\0");
+	}
+	for (i = 0; i < 9; i++) {
+		bstInsert("dog\0");
+	}
+	for (i = 0; i < 12; i++) {
+		bstInsert("cat\0");
+	}
+	for (i = 0; i < 13; i++) {
+		bstInsert("button\0");
+	}
+	for (i = 0; i < 16; i++) {
+		bstInsert("ball\0");
+	}
+	for ( i = 0; i < 45; i++) {
+		bstInsert("and\0");
+	}
 	heapInit();
 	printf("PRINTING BST\n");
 	printBst(root);
@@ -148,7 +167,7 @@ void constructHeap() {
 void heapify(int index) {
 	int small = index;
 	int left = (index * 2) + 1;
-	int right = (index * 2) + 1;
+	int right = (index * 2) + 2;
 	if ( left < nodeCount && heapArr[left].freq < heapArr[small].freq) {
 		small = left;
 	}
@@ -160,10 +179,10 @@ void heapify(int index) {
 	if (small != index) {//swaps the two values and continues to heapify
 		char* tWord;
 		int tFreq = heapArr[small].freq;
-		copyString(tWord,heapArr[small].word);
-		copyString(heapArr[small].word,heapArr[index].word);
+		tWord =	copyString(tWord,heapArr[small].word);
+		heapArr[small].word = copyString(heapArr[small].word,heapArr[index].word);
 		heapArr[small].freq = heapArr[index].freq;
-		copyString(heapArr[index].word,tWord);
+		heapArr[index].word = copyString(heapArr[index].word,tWord);
 		heapArr[index].freq = tFreq;
 		heapify(small);
 	}
