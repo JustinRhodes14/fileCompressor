@@ -124,33 +124,16 @@ int main(int argc, char** argv) {
 
 		}
 	}
-	/*	
-	int i;
-	for (i = 0; i < 5; i++) {
-		bstInsert("a\0");
-	}
-	for (i = 0; i < 9; i++) {
-		bstInsert("dog\0");
-	}
-	for (i = 0; i < 12; i++) {
-		bstInsert("cat\0");
-	}
-	for (i = 0; i < 13; i++) {
-		bstInsert("button\0");
-	}
-	for (i = 0; i < 16; i++) {
-		bstInsert("ball\0");
-	}
-	for ( i = 0; i < 45; i++) {
-		bstInsert("and\0");
-	}
-	*/
 	heapInit();
-	printf("PRINTING BST\n");
+	printf("PRINTING BST, NODECOUNT: %d\n", nodeCount);
 	printBst(root);
-	//constructHeap();
-	//printHeap();
+	constructHeap();
+	printHeap();
 	return 0;
+}
+
+void listDirectories(char* path) {
+	
 }
 
 void readFile(char* fileName) {
@@ -179,6 +162,11 @@ void readFile(char* fileName) {
 			char* temp;
 			if (buffer[end] == tabDelim || buffer[end] == spaceDelim || buffer[end] == lineDelim) {
 				temp = substring(buffer,start,end);
+				if ((temp[0] - 0) < 32 || (temp[0] - 0) > 127) {
+					start = end + 1;
+					end++;
+					continue;
+				}
 				if (moreStuff) {
 					holder = combineString(holder,temp);
 					bstInsert(holder);
@@ -188,13 +176,16 @@ void readFile(char* fileName) {
 				}
 				start = end+1;
 			}
-			if (buffer[99] != tabDelim || buffer[99] != spaceDelim || buffer[99] != lineDelim) {
+			if (end == 99 && (buffer[99] != tabDelim || buffer[99] != spaceDelim || buffer[99] != lineDelim)) {
 				if (moreStuff) {
 				holder = combineString(holder,buffer);
 				} else {
 				holder = substring(buffer,start,-1);
 				}
 				moreStuff = true;
+			}
+			if (buffer[end] == '\0') {
+				break;	
 			}
 			end++;
 		}
