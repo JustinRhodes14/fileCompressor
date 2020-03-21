@@ -40,7 +40,7 @@ char* copyString(char*,char*);//copies a string from another word and properly i
 char* combineString(char* str1, char* str2); //combines two strings and returns combined string: String result = str1+str2;
 char* substring(char* str, int start, int end); //cuts a string starting from a certain index
 int compareString(char*,char*);//compares two strings and returns a negative number if the first one is lesser, and a pos number if the first one is greater 
-
+void readFile(char*);
 Node* root;//our tree node, initially we store all the values in here and then into our heap
 int nodeCount = 0;//amount of items in our tree
 
@@ -102,19 +102,20 @@ int main(int argc, char** argv) {
 		if (flag == 'b') {
 			char* path = argv[2]; //all files within this directory will be indexed into HuffmanCodebook
 			printf("path is: %s\n", path);
-			
-			int file;
+			readFile(path);	
+			/*int file;
 			mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 			file = open(path, O_RDONLY, mode);	
 
 			char temp[101];
+			memset(temp,'\0',100);
 			int a = read(file, temp, 100);
 			temp[100] = '\0';
 			printf("temp is: %s\n", temp);
-
+			*/
 			int fd;
 			printf("location of codebook is: %s\n\n", path);
-			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC, mode);
+			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC);
 
 			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 		} else if (flag == 'c') {
@@ -122,7 +123,8 @@ int main(int argc, char** argv) {
 		} else if (flag == 'd') {
 
 		}
-	}	
+	}
+	/*	
 	int i;
 	for (i = 0; i < 5; i++) {
 		bstInsert("a\0");
@@ -142,12 +144,62 @@ int main(int argc, char** argv) {
 	for ( i = 0; i < 45; i++) {
 		bstInsert("and\0");
 	}
+	*/
 	heapInit();
 	printf("PRINTING BST\n");
 	printBst(root);
-	constructHeap();
-	printHeap();
+	//constructHeap();
+	//printHeap();
 	return 0;
+}
+
+void readFile(char* fileName) {
+	int fileParse = open(fileName, O_RDONLY);
+	int status = 1;
+	int bytesRead = 0;
+	char tabDelim = '\t';
+	char spaceDelim = ' ';
+	char lineDelim = '\n';
+	char* holder;
+	boolean moreStuff = false;
+	while (status > 0) {
+		char buffer[101];
+		memset(buffer,'\0',101);
+		int readIn = 0;
+		do {
+			status = read(fileParse,buffer,100-readIn);
+			if (status == 0) {
+				break;
+			}
+			readIn+= status;
+		}while(readIn < 100);
+		int end = 0;
+		int start = 0;
+		while (end < 100) {
+			char* temp;
+			if (buffer[end] == tabDelim || buffer[end] == spaceDelim || buffer[end] == lineDelim) {
+				temp = substring(buffer,start,end);
+				if (moreStuff) {
+					holder = combineString(holder,temp);
+					bstInsert(holder);
+					moreStuff = false;
+				} else {
+					bstInsert(temp);
+				}
+				start = end+1;
+			}
+			if (buffer[99] != tabDelim || buffer[99] != spaceDelim || buffer[99] != lineDelim) {
+				if (moreStuff) {
+				holder = combineString(holder,buffer);
+				} else {
+				holder = substring(buffer,start,-1);
+				}
+				moreStuff = true;
+			}
+			end++;
+		}
+		
+	}		
 }
 
 void heapInit() {
