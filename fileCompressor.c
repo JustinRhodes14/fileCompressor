@@ -41,6 +41,9 @@ char* combineString(char* str1, char* str2); //combines two strings and returns 
 char* substring(char* str, int start, int end); //cuts a string starting from a certain index
 int compareString(char*,char*);//compares two strings and returns a negative number if the first one is lesser, and a pos number if the first one is greater 
 void readFile(char*);
+void listDirectories(char*);
+
+
 Node* root;//our tree node, initially we store all the values in here and then into our heap
 int nodeCount = 0;//amount of items in our tree
 
@@ -84,6 +87,8 @@ int main(int argc, char** argv) {
 	//call flag functions
 	if (recursive) {
 		if (flag == 'b') {
+			listDirectories(argv[3]);
+			/*
 			DIR *d;
 			struct dirent *dir;
 			d = opendir("./stuff");	
@@ -93,6 +98,7 @@ int main(int argc, char** argv) {
 				}
 				closedir(d);
 			}
+			*/
 		} else if (flag == 'c') {
 
 		} else if (flag == 'd') {
@@ -133,7 +139,29 @@ int main(int argc, char** argv) {
 }
 
 void listDirectories(char* path) {
-	
+		
+	DIR *d;
+	struct dirent *dir;
+	if (!(d = opendir(path))) {
+		return;
+	}
+	while ((dir = readdir(d)) != NULL) {
+		if (dir->d_type == DT_DIR) {
+			if (compareString(dir->d_name,".") == 0 || compareString(dir->d_name,"..") == 0) {
+				continue;
+			}
+			printf("folder: %s\n",dir->d_name);
+			char* temp = combineString(path,"/");
+			temp = combineString(temp,dir->d_name);
+			listDirectories(temp);
+		} else {
+			char* temp = combineString(path,"/");
+			temp = combineString(temp,dir->d_name); 
+			readFile(temp);
+			printf("file: %s\n",dir->d_name);
+		}
+	}
+	closedir(d);
 }
 
 void readFile(char* fileName) {
@@ -191,6 +219,7 @@ void readFile(char* fileName) {
 		}
 		
 	}		
+	close(fileParse);
 }
 
 void heapInit() {
