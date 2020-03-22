@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <limits.h>
 //BSTNode structure, to create one follow following format:
 //	Node* <name> = (Node*)malloc(sizeof(Node));
 //Making an array of BSTNodes is as follows:
@@ -140,6 +141,7 @@ int main(int argc, char** argv) {
 	printBst(root);
 	heapSize = nodeCount;
 	constructHeap();
+	printHeap();
 	buildHuff();
 	printHeap();
 	printhuffTree(heapArr[0].tree);
@@ -159,8 +161,12 @@ void buildHuff() {
 		tree->freqSet = true;
 		tree->word = NULL;
 		if (item1.isTree && item2.isTree) {
-				tree->left = item1.tree;
-				tree->right = item2.tree;
+			tree->left = item1.tree;
+			printhuffTree(item1.tree);
+			tree->right = item2.tree;
+			printhuffTree(item2.tree);
+		//	printf("treeleft: %s,\n",tree->left->word);
+		//	printf("treeright: %s,\n",tree->right->word);
 		} else if (item1.isTree) {
 			Node* t2 = (Node*)malloc(sizeof(Node));
 			t2->freqSet = false;
@@ -169,7 +175,10 @@ void buildHuff() {
 			t2->left = NULL;
 			t2->right = NULL;
 			tree->left = item1.tree;
+			printhuffTree(item1.tree);
 			tree->right = t2;
+		//	printf("treeleft: %s,\n",tree->left->word);
+		//	printf("treeright: %s,\n",tree->right->word);
 		} else if (item2.isTree) {
 			Node* t1 = (Node*)malloc(sizeof(Node));
 			t1->freqSet = false;
@@ -178,7 +187,10 @@ void buildHuff() {
 			t1->left = NULL;
 			t1->right = NULL;
 			tree->left = item2.tree;
+			printfhuffTree(item2.tree);
 			tree->right = t1;
+		//	printf("treeleft: %s,\n",tree->left->word);
+		//	printf("treeright: %s,\n",tree->right->word);
 		} else {
 			Node* t1 = (Node*)malloc(sizeof(Node));
 			t1->word = copyString(t1->word,item1.word);
@@ -194,31 +206,36 @@ void buildHuff() {
 			t2->right = NULL;
 			tree->left = t1;
 			tree->right = t2;
+		//	printf("treeleft: %s,\n",tree->left->word);
+		//	printf("treeright: %s,\n",tree->right->word);
 		}
 		heapItem toInsert = heapArr[heapSize];
 		toInsert.tree = tree;
-		printf("val of tree: %d\n",tree->freq);
-		printf("val of lchild: %s:%d\n",tree->left->word,tree->left->freq);
-		printf("val of rchild: %s:%d\n",tree->right->word,tree->right->freq);
+		//printf("val of tree: %d\n",tree->freq);
+		//printf("val of lchild: %s:%d\n",tree->left->word,tree->left->freq);
+		//printf("val of rchild: %s:%d\n",tree->right->word,tree->right->freq);
 		toInsert.isTree = true;
 		toInsert.freq = sum;
 		heapInsert(toInsert);
-		printHeap();
 	}
+	
 }
 
 heapItem poll() {
 	heapItem temp = heapArr[0];
 	heapItem shift = heapArr[heapSize-1];
 	heapArr[0] = shift;
-	heapArr[heapSize-1].freq = -1;
+	heapArr[heapSize-1].freq = INT_MAX;
 	heapSize--;
 	constructHeap();
 	return temp;
 }
 
 void heapInsert(heapItem item) {
-	heapArr[heapSize] = item;
+	heapArr[heapSize].word = "tree\0";
+	heapArr[heapSize].freq = item.freq;
+	heapArr[heapSize].tree = item.tree;
+	heapArr[heapSize].isTree = true;
 	heapSize++;
 	constructHeap(heapSize);
 }
