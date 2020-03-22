@@ -53,7 +53,6 @@ heapItem* heapArr;//our array of vals to start our huffman tree
 int heapCount = 0; //temporary, for testing purposes
 
 int main(int argc, char** argv) {
-	/*	for testing purposes, argument checkers are commented out 	
 	if (argc < 3) {
 		printf("Fatal Error: expected at least 3 arguments\n");
 		exit(0);
@@ -61,7 +60,6 @@ int main(int argc, char** argv) {
 		printf("Fatal Error: expected at most 5 arguments\n");
 		exit(0);
 	}
-	*/
 
 	//check flag
 	char flag;
@@ -153,6 +151,7 @@ void listDirectories(char* path) {
 			printf("folder: %s\n",dir->d_name);
 			char* temp = combineString(path,"/");
 			temp = combineString(temp,dir->d_name);
+			printf("temp is: %s\n", temp);
 			listDirectories(temp);
 		} else {
 			char* temp = combineString(path,"/");
@@ -198,9 +197,11 @@ void readFile(char* fileName) {
 				if (moreStuff) {
 					holder = combineString(holder,temp);
 					bstInsert(holder);
+					printf("word inserted is %s\n", holder);
 					moreStuff = false;
 				} else {
 					bstInsert(temp);
+					printf("word insert is %s\n", temp);
 				}
 				start = end+1;
 			}
