@@ -37,7 +37,7 @@ void printHeap();//prints out all the frequencies within the heap and their word
 heapItem poll();
 void heapInsert(heapItem);
 void buildHuff();
-void printhuffTree();
+void printhuffTree(Node*);
 void initializeHuff();
 void bstInsert(char*);//inserts a word into our bst in alphabetical ordering
 int bstSearch(char*);//searches for bst item and increments it's frequency if found
@@ -162,9 +162,7 @@ void buildHuff() {
 		tree->word = NULL;
 		if (item1.isTree && item2.isTree) {
 			tree->left = item1.tree;
-			printhuffTree(item1.tree);
 			tree->right = item2.tree;
-			printhuffTree(item2.tree);
 		//	printf("treeleft: %s,\n",tree->left->word);
 		//	printf("treeright: %s,\n",tree->right->word);
 		} else if (item1.isTree) {
@@ -175,7 +173,6 @@ void buildHuff() {
 			t2->left = NULL;
 			t2->right = NULL;
 			tree->left = item1.tree;
-			printhuffTree(item1.tree);
 			tree->right = t2;
 		//	printf("treeleft: %s,\n",tree->left->word);
 		//	printf("treeright: %s,\n",tree->right->word);
@@ -186,9 +183,8 @@ void buildHuff() {
 			t1->freq = item1.freq;
 			t1->left = NULL;
 			t1->right = NULL;
-			tree->left = item2.tree;
-			printfhuffTree(item2.tree);
-			tree->right = t1;
+			tree->left = t1;
+			tree->right = item2.tree;
 		//	printf("treeleft: %s,\n",tree->left->word);
 		//	printf("treeright: %s,\n",tree->right->word);
 		} else {
@@ -209,14 +205,15 @@ void buildHuff() {
 		//	printf("treeleft: %s,\n",tree->left->word);
 		//	printf("treeright: %s,\n",tree->right->word);
 		}
-		heapItem toInsert = heapArr[heapSize];
-		toInsert.tree = tree;
+		heapArr[heapSize].tree = tree;
+		heapArr[heapSize].word = "tree\0";
+		heapArr[heapSize].isTree = true;
+		heapArr[heapSize].freq = sum;
+		heapSize++;
+		constructHeap();
 		//printf("val of tree: %d\n",tree->freq);
 		//printf("val of lchild: %s:%d\n",tree->left->word,tree->left->freq);
 		//printf("val of rchild: %s:%d\n",tree->right->word,tree->right->freq);
-		toInsert.isTree = true;
-		toInsert.freq = sum;
-		heapInsert(toInsert);
 	}
 	
 }
@@ -227,7 +224,7 @@ heapItem poll() {
 	heapArr[0] = shift;
 	heapArr[heapSize-1].freq = INT_MAX;
 	heapSize--;
-	constructHeap();
+	heapify(heapSize);
 	return temp;
 }
 
@@ -436,12 +433,12 @@ void printhuffTree(Node* ptr) {
 		return;
 	}
 	printhuffTree(ptr->left);
-	printhuffTree(ptr->right);
 	if (ptr->freqSet) {
 		printf("NUM_NODE: %d\n",ptr->freq);
 	} else {
 		printf("WORD_NODE: %s\n",ptr->word);
 	}
+	printhuffTree(ptr->right);
 }
 void printBst(Node* ptr) {
 	if (ptr == NULL) {
