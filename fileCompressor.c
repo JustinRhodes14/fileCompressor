@@ -33,24 +33,31 @@ void heapInit();//initializes the heap with frequencies of -1
 void constructHeap(); //helper function to heapify our stuff
 void heapify(int); //turns our array into a heap
 void printHeap();//prints out all the frequencies within the heap and their words
+heapItem poll();
+void heapInsert(heapItem);
+void buildHuff();
+void printhuffTree();
+void initializeHuff();
 void bstInsert(char*);//inserts a word into our bst in alphabetical ordering
 int bstSearch(char*);//searches for bst item and increments it's frequency if found
 void printBst(Node*);//prints out the BST items
 char* copyString(char*,char*);//copies a string from another word and properly inserts null terminator
-char* combineString(char* str1, char* str2); //combines two strings and returns combined string: String result = str1+str2;
-char* substring(char* str, int start, int end); //cuts a string starting from a certain index
+char* combineString(char*,char*); //combines two strings and returns combined string: String result = str1+str2;
+char* substring(char*,int,int); //cuts a string starting from a certain index
 int compareString(char*,char*);//compares two strings and returns a negative number if the first one is lesser, and a pos number if the first one is greater 
 void readFile(char*);
 void listDirectories(char*);
 
-
 Node* root;//our tree node, initially we store all the values in here and then into our heap
 int nodeCount = 0;//amount of items in our tree
+int heapSize = 0;
 
 boolean rootSet = false;//indicates whether or not root is set
 
 heapItem* heapArr;//our array of vals to start our huffman tree
 int heapCount = 0; //temporary, for testing purposes
+
+Node* huffmanTree;
 
 int main(int argc, char** argv) {
 	if (argc < 3) {
@@ -131,9 +138,89 @@ int main(int argc, char** argv) {
 	heapInit();
 	printf("PRINTING BST, NODECOUNT: %d\n", nodeCount);
 	printBst(root);
+	heapSize = nodeCount;
 	constructHeap();
+	buildHuff();
 	printHeap();
+	printhuffTree(heapArr[0].tree);
 	return 0;
+}
+
+void buildHuff() {
+	while (heapSize > 1) {
+		int sum = 0;
+		heapItem item1 = poll();
+		printf("i1: %s:%d\n",item1.word,item1.freq);
+		heapItem item2 = poll();
+		printf("i2: %s:%d\n",item2.word,item2.freq);
+		sum = item1.freq + item2.freq;
+		Node* tree = (Node*)malloc(sizeof(Node));
+		tree->freq = sum;
+		tree->freqSet = true;
+		tree->word = NULL;
+		if (item1.isTree && item2.isTree) {
+				tree->left = item1.tree;
+				tree->right = item2.tree;
+		} else if (item1.isTree) {
+			Node* t2 = (Node*)malloc(sizeof(Node));
+			t2->freqSet = false;
+			t2->word = copyString(t2->word,item2.word);
+			t2->freq = item2.freq;
+			t2->left = NULL;
+			t2->right = NULL;
+			tree->left = item1.tree;
+			tree->right = t2;
+		} else if (item2.isTree) {
+			Node* t1 = (Node*)malloc(sizeof(Node));
+			t1->freqSet = false;
+			t1->word = copyString(t1->word,item1.word);
+			t1->freq = item1.freq;
+			t1->left = NULL;
+			t1->right = NULL;
+			tree->left = item2.tree;
+			tree->right = t1;
+		} else {
+			Node* t1 = (Node*)malloc(sizeof(Node));
+			t1->word = copyString(t1->word,item1.word);
+			t1->freqSet = false;
+			t1->freq = item1.freq;
+			t1->left = NULL;
+			t1->right = NULL;
+			Node* t2 = (Node*)malloc(sizeof(Node));
+			t2->freqSet = false;
+			t2->word = copyString(t2->word,item2.word);
+			t2->freq = item2.freq;
+			t2->left = NULL;
+			t2->right = NULL;
+			tree->left = t1;
+			tree->right = t2;
+		}
+		heapItem toInsert = heapArr[heapSize];
+		toInsert.tree = tree;
+		printf("val of tree: %d\n",tree->freq);
+		printf("val of lchild: %s:%d\n",tree->left->word,tree->left->freq);
+		printf("val of rchild: %s:%d\n",tree->right->word,tree->right->freq);
+		toInsert.isTree = true;
+		toInsert.freq = sum;
+		heapInsert(toInsert);
+		printHeap();
+	}
+}
+
+heapItem poll() {
+	heapItem temp = heapArr[0];
+	heapItem shift = heapArr[heapSize-1];
+	heapArr[0] = shift;
+	heapArr[heapSize-1].freq = -1;
+	heapSize--;
+	constructHeap();
+	return temp;
+}
+
+void heapInsert(heapItem item) {
+	heapArr[heapSize] = item;
+	heapSize++;
+	constructHeap(heapSize);
 }
 
 void listDirectories(char* path) {
@@ -197,11 +284,9 @@ void readFile(char* fileName) {
 				if (moreStuff) {
 					holder = combineString(holder,temp);
 					bstInsert(holder);
-					printf("word inserted is %s\n", holder);
 					moreStuff = false;
 				} else {
 					bstInsert(temp);
-					printf("word insert is %s\n", temp);
 				}
 				start = end+1;
 			}
@@ -233,7 +318,7 @@ void heapInit() {
 }
 
 void constructHeap() {
-	int start = (nodeCount/2) - 1;
+	int start = (heapSize/2) - 1;
 	int i;
 	for (i = start; i >= 0; i--) {
 		heapify(i);
@@ -244,11 +329,11 @@ void heapify(int index) {
 	int small = index;
 	int left = (index * 2) + 1;
 	int right = (index * 2) + 2;
-	if ( left < nodeCount && heapArr[left].freq < heapArr[small].freq) {
+	if ( left < heapSize && heapArr[left].freq < heapArr[small].freq) {
 		small = left;
 	}
 	
-	if ( right < nodeCount && heapArr[right].freq < heapArr[small].freq) {
+	if ( right < heapSize && heapArr[right].freq < heapArr[small].freq) {
 		small = right;
 	}
 	
@@ -267,7 +352,7 @@ void heapify(int index) {
 void printHeap() {
 	printf("PRINTING HEAP\n");
 	int i;
-	for (i = 0; i < nodeCount; i++) {
+	for (i = 0; i < heapSize; i++) {
 		printf("%s: %d, %d\n",heapArr[i].word,heapArr[i].freq,heapArr[i].isTree);
 	}	
 
@@ -329,7 +414,18 @@ int bstSearch(char* word) {
 	}
 	return -1;//not found
 }
-
+void printhuffTree(Node* ptr) {
+	if (ptr == NULL) {
+		return;
+	}
+	printhuffTree(ptr->left);
+	printhuffTree(ptr->right);
+	if (ptr->freqSet) {
+		printf("NUM_NODE: %d\n",ptr->freq);
+	} else {
+		printf("WORD_NODE: %s\n",ptr->word);
+	}
+}
 void printBst(Node* ptr) {
 	if (ptr == NULL) {
 		return;
@@ -345,11 +441,11 @@ void printBst(Node* ptr) {
 char* copyString(char* to, char* from) {
 	int length = strlen(from);
 	to = (char*)malloc(length * sizeof(char) + 1);
+	memset(to,'\0',(length+1));
 	int i;
 	for ( i = 0; i < length; i++) {
 		to[i] = from[i];
 	}
-	to[length] = '\0';
 	return to;
 } 
 
@@ -357,6 +453,7 @@ char* combineString(char* str1, char* str2) {
 	int len1 = strlen(str1);
 	int len2 = strlen(str2);
 	char* result = (char*)malloc((len1+len2)*sizeof(char) + 1);
+	memset(result,'\0',(len1+len2+1));
 	int i;
 	int j = 0;
 	for ( i = 0; i < len1; i++) {
@@ -367,7 +464,6 @@ char* combineString(char* str1, char* str2) {
 		result[j] = str2[i];
 		j++;
 	}
-	result[len1 + len2] = '\0';
 	return result;
 }
 
@@ -376,22 +472,22 @@ char* substring(char* str, int start, int end) {
 	if (end == -1) {
 		int length = strlen(str);
 		result = (char*)malloc((length-start)*sizeof(char) + 1);
+		memset(result,'\0',(length-start + 1));
 		int i;
 		int j = 0;
 		for ( i = start; i < length; i++) {
 			result[j] = str[i];
 			j++;
 		}
-		result[length-start] = '\0';
 	} else {
 		result = (char*)malloc((end-start)*sizeof(char) + 1);
+		memset(result,'\0',(end-start + 1));
 		int i;
 		int j = 0;
 		for ( i = start; i < end; i++) {
 			result[j] = str[i];
 			j++;
 		}	
-		result[end-start+1] = '\0';
 	}
 	return result;
 }
