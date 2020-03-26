@@ -33,6 +33,7 @@ typedef struct _heapItem { //need to see whether or not tree is set
 void heapInit();//initializes the heap with frequencies of -1
 void constructHeap(); //helper function to heapify our stuff
 void heapify(int); //turns our array into a heap
+void heapify2(int);
 void printHeap();//prints out all the frequencies within the heap and their words
 heapItem poll();
 void heapInsert(heapItem);
@@ -143,7 +144,6 @@ int main(int argc, char** argv) {
 	constructHeap();
 	printHeap();
 	buildHuff();
-	printHeap();
 	printhuffTree(heapArr[0].tree);
 	return 0;
 }
@@ -205,12 +205,12 @@ void buildHuff() {
 		//	printf("treeleft: %s,\n",tree->left->word);
 		//	printf("treeright: %s,\n",tree->right->word);
 		}
-		heapArr[heapSize].tree = tree;
-		heapArr[heapSize].word = "tree\0";
-		heapArr[heapSize].isTree = true;
-		heapArr[heapSize].freq = sum;
-		heapSize++;
-		constructHeap();
+		heapItem toInsert = heapArr[heapSize];
+		toInsert.freq = sum;
+		toInsert.word = "tree\0";
+		toInsert.tree = tree;
+		toInsert.isTree = true;
+		heapInsert(toInsert);
 		//printf("val of tree: %d\n",tree->freq);
 		//printf("val of lchild: %s:%d\n",tree->left->word,tree->left->freq);
 		//printf("val of rchild: %s:%d\n",tree->right->word,tree->right->freq);
@@ -219,24 +219,55 @@ void buildHuff() {
 }
 
 heapItem poll() {
-	heapItem temp = heapArr[0];
-	heapItem shift = heapArr[heapSize-1];
-	heapArr[0] = shift;
-	heapArr[heapSize-1].freq = INT_MAX;
+	if (heapSize == 1) {
+		heapSize--;
+		return heapArr[0];
+	}
+	
+	heapItem parent = heapArr[0];
+	
+	heapArr[0] = heapArr[heapSize-1];
+	
 	heapSize--;
-	heapify(heapSize);
-	return temp;
+	heapify2(0);
+	
+	return parent;
+
 }
 
 void heapInsert(heapItem item) {
-	heapArr[heapSize].word = "tree\0";
-	heapArr[heapSize].freq = item.freq;
-	heapArr[heapSize].tree = item.tree;
-	heapArr[heapSize].isTree = true;
 	heapSize++;
-	constructHeap(heapSize);
+	int index = heapSize - 1;
+	int parent = (index - 1)/2;
+	heapArr[index] = item;
+
+	while (index != 0 && heapArr[parent].freq > heapArr[index].freq) {
+		heapItem temp = heapArr[index];
+		heapArr[index] = heapArr[parent];
+		heapArr[parent] = temp;
+		index = parent;
+	}	
 }
 
+void heapify2(int i) {
+	int left = (2 * i) + 1;
+	int right = (2 * i) + 2;
+	int small = i;
+	if (left < heapSize && heapArr[left].freq < heapArr[i].freq) {
+		small = left;
+	}	
+	
+	if (right < heapSize && heapArr[right].freq < heapArr[small].freq) {
+		small = right;
+	}
+
+	if (small != i) {
+		heapItem temp = heapArr[i];
+		heapArr[i] = heapArr[small];
+		heapArr[small] = temp;
+		heapify2(small);
+	}
+}
 void listDirectories(char* path) {
 		
 	DIR *d;
@@ -432,12 +463,12 @@ void printhuffTree(Node* ptr) {
 	if (ptr == NULL) {
 		return;
 	}
-	printhuffTree(ptr->left);
 	if (ptr->freqSet) {
 		printf("NUM_NODE: %d\n",ptr->freq);
 	} else {
 		printf("WORD_NODE: %s\n",ptr->word);
 	}
+	printhuffTree(ptr->left);
 	printhuffTree(ptr->right);
 }
 void printBst(Node* ptr) {
