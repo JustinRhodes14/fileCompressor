@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <limits.h>
+#include <math.h>
 //BSTNode structure, to create one follow following format:
 //	Node* <name> = (Node*)malloc(sizeof(Node));
 //Making an array of BSTNodes is as follows:
@@ -30,16 +31,24 @@ typedef struct _heapItem { //need to see whether or not tree is set
 	boolean isTree;// all vals will be false, unless we ourselves insert a tree
 }heapItem;
 
+typedef struct _hashNode {
+	char* binary;
+	char* word;
+	struct _hashNode* next;
+}hashTable;
+
+
+
 void heapInit();//initializes the heap with frequencies of -1
 void constructHeap(); //helper function to heapify our stuff
 void heapify(int); //turns our array into a heap
-void heapify2(int);
+void heapify2(int);//the true heapify
 void printHeap();//prints out all the frequencies within the heap and their words
-heapItem poll();
-void heapInsert(heapItem);
-void buildHuff();
-void printhuffTree(Node*,int*,int,int);
-void initializeHuff();
+heapItem poll();//returns smallest value from heap
+void heapInsert(heapItem);//inserts item into heap
+void buildHuff();//builds our huffman tree
+void printhuffTree(Node*,int*,int,int);//stores words and their codes into huffmancodebook file
+void initializeHuff();//initializes huffmantree
 void bstInsert(char*);//inserts a word into our bst in alphabetical ordering
 int bstSearch(char*);//searches for bst item and increments it's frequency if found
 void printBst(Node*);//prints out the BST items
@@ -47,12 +56,16 @@ char* copyString(char*,char*);//copies a string from another word and properly i
 char* combineString(char*,char*); //combines two strings and returns combined string: String result = str1+str2;
 char* substring(char*,int,int); //cuts a string starting from a certain index
 int compareString(char*,char*);//compares two strings and returns a negative number if the first one is lesser, and a pos number if the first one is greater 
-void readFile(char*);
-void listDirectories(char*);
-int* arrInit(int*);
-char* printArr(int*,int);
-
-
+void readFile(char*);//reads data from a file, used for the -b flag
+void listDirectories(char*);//lists all directories and calls readFile() on all the files, used for the -b flag
+void compress(char*);//compresses all the data from a .txt file and outputs a .txt.hcz file with the compressed data
+int* arrInit(int*);//initializes the array that allows us to compute each huffmancode
+char* printArr(int*,int);//allows for us to store the code into our codebook
+void tableInit(int);//initializes our global hash table
+int hashcodeBin(char*);//computes the hashcode for the binary (used for decompress)
+int hashcodeWord(char*);//computes the hashcode for the word (used for compress)
+void hashInsert(char*,char*,boolean);//inserts binary and word into hashtable
+char* hashSearch(int,boolean);
 Node* root;//our tree node, initially we store all the values in here and then into our heap
 int nodeCount = 0;//amount of items in our tree
 int heapSize = 0;
@@ -62,9 +75,13 @@ boolean rootSet = false;//indicates whether or not root is set
 heapItem* heapArr;//our array of vals to start our huffman tree
 int heapCount = 0; //temporary, for testing purposes
 
-Node* huffmanTree;
+Node* huffmanTree;//used for build, allows us to store our hash items in the codebook
 
-char* coding = " ";
+char* coding = " ";//used to  encode the binary for huffman
+
+hashTable** table;
+int hashSize = 0; //size of hash table
+
 
 int main(int argc, char** argv) {
 	if (argc < 3) {
@@ -100,15 +117,6 @@ int main(int argc, char** argv) {
 	if (recursive) {
 		if (flag == 'b') {
 			listDirectories(argv[3]);
-			mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-			/*file = open(path, O_RDONLY, mode);	
-
-			char temp[101];
-			memset(temp,'\0',100);
-			int a = read(file, temp, 100);
-			temp[100] = '\0';
-			printf("temp is: %s\n", temp);
-			*/
 			int fd;
 			printf("location of codebook is: ./");
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
@@ -147,7 +155,7 @@ int main(int argc, char** argv) {
 			*/
 			int fd;
 			printf("location of codebook is: %s\n\n", path);
-			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC);
+			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
 			int a = write(fd, "$\n", 2);
 
 			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
@@ -159,10 +167,10 @@ int main(int argc, char** argv) {
 			int* codeArr = arrInit(codeArr);
 			constructHeap();
 			printHeap();
-		
+			buildHuff();
 			printhuffTree(heapArr[0].tree,codeArr,0,fd);
 		} else if (flag == 'c') {
-
+			compress(argv[2]);
 		} else if (flag == 'd') {
 
 		}
@@ -179,6 +187,73 @@ int main(int argc, char** argv) {
 	printhuffTree(heapArr[0].tree,codeArr,0,fd);
 	*/
 	return 0;
+}
+void tableInit(int size) {
+	table = (hashTable**)malloc(size * sizeof(hashTable*));
+	int i;
+	for (i = 0; i < size; i++) {
+		table[i] = (hashTable*)malloc(sizeof(hashTable));
+	}
+}
+
+int hashcodeBin(char* binary) {
+	int len = strlen(binary);
+	int code = 0;
+	int i;
+	for (i = 0; i < len; i++) {
+		code += (binary[0] - 0) * (pow(31,(len-(i+1))));
+	}
+	return (hashSize % code);
+}
+
+int hashcodeWord(char* word) {
+	int len = strlen(word);
+	int code = 0;
+	int i;
+	for (i = 0; i < len; i++) {
+		code += (word[0] - 0) * (pow(31,(len-(i+1))));
+	}
+	return (hashSize % code);
+}
+
+void hashInsert(char* word, char* binary,boolean compress) {
+	int index = -1;
+	if (compress == true) {
+		index = hashcodeWord(word);
+	} else {
+		index = hashcodeBin(binary);
+	}
+	
+	if (index == -1) {
+		printf("error in hashInsert\n");
+		exit(0);	
+	}
+	hashTable* temp = table[index];
+	if (table[index] == NULL) {
+		table[index]->word = word;
+		table[index]->binary = binary;
+		table[index]->next = NULL;
+	} else {
+		while (temp->next != NULL) {
+			temp = temp->next;
+		}
+		hashTable* newNode = (hashTable*)malloc(sizeof(hashTable));
+		temp->next = newNode;
+		hashSize++;
+	}
+
+}
+
+char* hashSearch(int key,boolean compress) {
+	if (key == -1) {
+		return NULL;
+	}
+	if (compress == true) {
+		return table[key]->binary;
+	} else {
+		return table[key]->word;
+	}
+	
 }
 
 int* arrInit(int* arr) {
@@ -275,7 +350,15 @@ void buildHuff() {
 	}
 	
 }
-
+void compress(char* toCompress) {
+	int codebook;
+	codebook = open("./HuffmanCodebook", O_RDONLY);
+	
+	int compressed;
+	char* newFile = combineString(toCompress,".hcz");
+	compressed = open(newFile,O_WRONLY | O_CREAT | O_TRUNC,00600);
+	printf("file created %s\n",newFile);
+}
 heapItem poll() {
 	if (heapSize == 1) {
 		heapSize--;
@@ -379,6 +462,21 @@ void readFile(char* fileName) {
 			char* temp;
 			if (buffer[end] == tabDelim || buffer[end] == spaceDelim || buffer[end] == lineDelim) {
 				temp = substring(buffer,start,end);
+				char* delimInsert = (char*)malloc(3 * sizeof(char));
+				if (buffer[end] == tabDelim) {
+					delimInsert[0] = '$';
+					delimInsert[1] = 't';
+					delimInsert[2] = '\0';
+				} else if (buffer[end] == spaceDelim) {
+					delimInsert[0] = '$';
+					delimInsert[1] = 's';
+					delimInsert[2] = '\0';
+				} else {
+					delimInsert[0] = '$';
+					delimInsert[1] = 'n';
+					delimInsert[2] = '\0';
+				}
+				bstInsert(delimInsert);
 				if ((temp[0] - 0) < 32 || (temp[0] - 0) > 127) {
 					start = end + 1;
 					end++;

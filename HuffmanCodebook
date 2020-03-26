@@ -1,7 +1,10 @@
 $
-0	and
-100	cat
-101	button
-1100	a
-1101	dog
-111	ball
+0	$s
+10	and
+1100	$n
+1101	ball
+111000	$t
+111001	a
+11101	button
+11110	dog
+11111	cat
