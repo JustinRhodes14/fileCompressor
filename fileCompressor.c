@@ -112,6 +112,7 @@ int main(int argc, char** argv) {
 			int fd;
 			printf("location of codebook is: ./");
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
+			int a = write(fd, "$\n", 2);
 
 			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 			
@@ -147,6 +148,7 @@ int main(int argc, char** argv) {
 			int fd;
 			printf("location of codebook is: %s\n\n", path);
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC);
+			int a = write(fd, "$\n", 2);
 
 			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 			
@@ -157,7 +159,7 @@ int main(int argc, char** argv) {
 			int* codeArr = arrInit(codeArr);
 			constructHeap();
 			printHeap();
-			buildHuff();
+		
 			printhuffTree(heapArr[0].tree,codeArr,0,fd);
 		} else if (flag == 'c') {
 
