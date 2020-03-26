@@ -38,7 +38,7 @@ void printHeap();//prints out all the frequencies within the heap and their word
 heapItem poll();
 void heapInsert(heapItem);
 void buildHuff();
-void printhuffTree(Node*);
+void printhuffTree(Node*,int*,int,int);
 void initializeHuff();
 void bstInsert(char*);//inserts a word into our bst in alphabetical ordering
 int bstSearch(char*);//searches for bst item and increments it's frequency if found
@@ -49,6 +49,9 @@ char* substring(char*,int,int); //cuts a string starting from a certain index
 int compareString(char*,char*);//compares two strings and returns a negative number if the first one is lesser, and a pos number if the first one is greater 
 void readFile(char*);
 void listDirectories(char*);
+int* arrInit(int*);
+char* printArr(int*,int);
+
 
 Node* root;//our tree node, initially we store all the values in here and then into our heap
 int nodeCount = 0;//amount of items in our tree
@@ -60,6 +63,8 @@ heapItem* heapArr;//our array of vals to start our huffman tree
 int heapCount = 0; //temporary, for testing purposes
 
 Node* huffmanTree;
+
+char* coding = " ";
 
 int main(int argc, char** argv) {
 	if (argc < 3) {
@@ -95,17 +100,30 @@ int main(int argc, char** argv) {
 	if (recursive) {
 		if (flag == 'b') {
 			listDirectories(argv[3]);
-			/*
-			DIR *d;
-			struct dirent *dir;
-			d = opendir("./stuff");	
-			if (d) {
-				while ((dir = readdir(d)) != NULL) {
-					printf("%s\n",dir->d_name);
-				}
-				closedir(d);
-			}
+			mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+			/*file = open(path, O_RDONLY, mode);	
+
+			char temp[101];
+			memset(temp,'\0',100);
+			int a = read(file, temp, 100);
+			temp[100] = '\0';
+			printf("temp is: %s\n", temp);
 			*/
+			int fd;
+			printf("location of codebook is: ./");
+			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
+
+			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
+			
+			heapInit();
+			printf("PRINTING BST, NODECOUNT: %d\n", nodeCount);
+			printBst(root);
+			heapSize = nodeCount;
+			int* codeArr = arrInit(codeArr);
+			constructHeap();
+			printHeap();
+			buildHuff();
+			printhuffTree(heapArr[0].tree,codeArr,0,fd);
 		} else if (flag == 'c') {
 
 		} else if (flag == 'd') {
@@ -131,21 +149,59 @@ int main(int argc, char** argv) {
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC);
 
 			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
+			
+			heapInit();
+			printf("PRINTING BST, NODECOUNT: %d\n", nodeCount);
+			printBst(root);
+			heapSize = nodeCount;
+			int* codeArr = arrInit(codeArr);
+			constructHeap();
+			printHeap();
+			buildHuff();
+			printhuffTree(heapArr[0].tree,codeArr,0,fd);
 		} else if (flag == 'c') {
 
 		} else if (flag == 'd') {
 
 		}
 	}
+	/*
 	heapInit();
 	printf("PRINTING BST, NODECOUNT: %d\n", nodeCount);
 	printBst(root);
 	heapSize = nodeCount;
+	int* codeArr = arrInit(codeArr);
 	constructHeap();
 	printHeap();
 	buildHuff();
-	printhuffTree(heapArr[0].tree);
+	printhuffTree(heapArr[0].tree,codeArr,0,fd);
+	*/
 	return 0;
+}
+
+int* arrInit(int* arr) {
+	arr = (int*)malloc(nodeCount * sizeof(int));
+	int i;
+	for (i = 0; i < nodeCount; i++) {
+		arr[i] = -1;
+	}
+	return arr;
+}
+
+char* printArr(int* arr,int index) {
+	int i;
+	char* codeWord = (char*)malloc(index * sizeof(char) + 1);
+	for (i = 0; i < index;++i) {
+		printf("%d",arr[i]);
+		if (arr[i] == 0) {
+			codeWord[i] = '0';
+		} else {
+			codeWord[i] = '1';
+		}
+	}	
+	codeWord[index] = '\0';
+	printf("\n");
+	return codeWord;
 }
 
 void buildHuff() {
@@ -459,10 +515,30 @@ int bstSearch(char* word) {
 	}
 	return -1;//not found
 }
-void printhuffTree(Node* ptr) {
-	if (ptr == NULL) {
-		return;
+void printhuffTree(Node* ptr,int* codeArr,int index,int fd) {
+	if (ptr->left) {
+		codeArr[index] = 0;
+		printhuffTree(ptr->left,codeArr,index+1,fd);
 	}
+
+	if (ptr->right) {
+		codeArr[index] = 1;
+		printhuffTree(ptr->right,codeArr,index+1,fd);
+	}
+
+	if (!(ptr->left) && !(ptr->right)) {
+		char* codeWord;
+		printf("%s: ",ptr->word);
+		codeWord = printArr(codeArr,index);
+		int bytesWritten = 0;
+		char* combinedWord = combineString(codeWord,"\t");
+		combinedWord = combineString(combinedWord,ptr->word);
+		int bytestoWrite = strlen(combinedWord);
+		while (bytesWritten < bytestoWrite) {
+			bytesWritten = write(fd,combinedWord,bytestoWrite-bytesWritten);
+		}
+		int t = write(fd,"\n",1);
+	}/*
 	if (ptr->freqSet) {
 		printf("NUM_NODE: %d\n",ptr->freq);
 	} else {
@@ -470,6 +546,7 @@ void printhuffTree(Node* ptr) {
 	}
 	printhuffTree(ptr->left);
 	printhuffTree(ptr->right);
+	*/
 }
 void printBst(Node* ptr) {
 	if (ptr == NULL) {
