@@ -192,7 +192,7 @@ char* printArr(int* arr,int index) {
 	int i;
 	char* codeWord = (char*)malloc(index * sizeof(char) + 1);
 	for (i = 0; i < index;++i) {
-		printf("%d",arr[i]);
+		//printf("%d",arr[i]);
 		if (arr[i] == 0) {
 			codeWord[i] = '0';
 		} else {
@@ -200,7 +200,7 @@ char* printArr(int* arr,int index) {
 		}
 	}	
 	codeWord[index] = '\0';
-	printf("\n");
+	//printf("\n");
 	return codeWord;
 }
 
@@ -208,9 +208,9 @@ void buildHuff() {
 	while (heapSize > 1) {
 		int sum = 0;
 		heapItem item1 = poll();
-		printf("i1: %s:%d\n",item1.word,item1.freq);
+		//printf("i1: %s:%d\n",item1.word,item1.freq);
 		heapItem item2 = poll();
-		printf("i2: %s:%d\n",item2.word,item2.freq);
+		//printf("i2: %s:%d\n",item2.word,item2.freq);
 		sum = item1.freq + item2.freq;
 		Node* tree = (Node*)malloc(sizeof(Node));
 		tree->freq = sum;
@@ -528,7 +528,7 @@ void printhuffTree(Node* ptr,int* codeArr,int index,int fd) {
 
 	if (!(ptr->left) && !(ptr->right)) {
 		char* codeWord;
-		printf("%s: ",ptr->word);
+		//printf("%s: ",ptr->word);
 		codeWord = printArr(codeArr,index);
 		int bytesWritten = 0;
 		char* combinedWord = combineString(codeWord,"\t");
