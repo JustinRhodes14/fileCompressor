@@ -36,6 +36,11 @@ typedef struct _hashNode {
 	char* binary;
 	char* word;
 	struct _hashNode* next;
+}hashNode;
+
+typedef struct _hashTable{
+	int size;
+	hashNode** table;
 }hashTable;
 
 
@@ -66,7 +71,7 @@ void tableInit(int);//initializes our global hash table
 int hashcodeBin(char*);//computes the hashcode for the binary (used for decompress)
 int hashcodeWord(char*);//computes the hashcode for the word (used for compress)
 void hashInsert(char*,char*,boolean);//inserts binary and word into hashtable
-char* hashSearch(int,boolean);
+char* hashSearch(char*,char*,boolean);
 Node* root;//our tree node, initially we store all the values in here and then into our heap
 int nodeCount = 0;//amount of items in our tree
 int heapSize = 0;
@@ -80,7 +85,7 @@ Node* huffmanTree;//used for build, allows us to store our hash items in the cod
 
 char* coding = " ";//used to  encode the binary for huffman
 
-hashTable** table;
+hashTable* table;
 int hashSize = 0; //size of hash table
 
 
@@ -172,6 +177,7 @@ int main(int argc, char** argv) {
 			printhuffTree(heapArr[0].tree,codeArr,0,fd);
 		} else if (flag == 'c') {
 			compress(argv[2]);
+			tableInit(1000);
 		} else if (flag == 'd') {
 
 		}
@@ -190,21 +196,25 @@ int main(int argc, char** argv) {
 	return 0;
 }
 void tableInit(int size) {
-	table = (hashTable**)malloc(size * sizeof(hashTable*));
+	table = (hashTable*)malloc(sizeof(hashTable));
+	table->size = size;
+	table->table = (hashNode**)malloc(size * sizeof(hashNode*));
 	int i;
 	for (i = 0; i < size; i++) {
-		table[i] = (hashTable*)malloc(sizeof(hashTable));
+		table->table[i] = NULL;
 	}
+	hashSize = size;
 }
 
 int hashcodeBin(char* binary) {
 	int len = strlen(binary);
-	int code = 0;
+	long int code = 0;
 	int i;
 	for (i = 0; i < len; i++) {
-		code += (binary[0] - 0) * (pow(31,(len-(i+1))));
+		code += (binary[0] - 0);
 	}
-	return (hashSize % code);
+	printf("val of code:%d\n",code);
+	return (code % hashSize);
 }
 
 int hashcodeWord(char* word) {
@@ -212,9 +222,10 @@ int hashcodeWord(char* word) {
 	int code = 0;
 	int i;
 	for (i = 0; i < len; i++) {
-		code += (word[0] - 0) * (pow(31,(len-(i+1))));
+		code += (word[0] - 0);
 	}
-	return (hashSize % code);
+	printf("val of code:%d\n",code);
+	return (code % hashSize);
 }
 
 void hashInsert(char* word, char* binary,boolean compress) {
@@ -224,36 +235,49 @@ void hashInsert(char* word, char* binary,boolean compress) {
 	} else {
 		index = hashcodeBin(binary);
 	}
-	
+	printf("val of index: %d\n",index);
 	if (index == -1) {
 		printf("error in hashInsert\n");
 		exit(0);	
 	}
-	hashTable* temp = table[index];
-	if (table[index] == NULL) {
-		table[index]->word = word;
-		table[index]->binary = binary;
-		table[index]->next = NULL;
-	} else {
-		while (temp->next != NULL) {
-			temp = temp->next;
-		}
-		hashTable* newNode = (hashTable*)malloc(sizeof(hashTable));
-		temp->next = newNode;
-		hashSize++;
+	hashNode* temp = table->table[index];
+	hashNode* toInsert = (hashNode*)malloc(sizeof(hashNode));
+	hashNode* temp2 = temp;
+	while (temp2) {
+		temp2 = temp2->next;
 	}
+	
+	toInsert->word = copyString(toInsert->word,word);
+	toInsert->binary = copyString(toInsert->binary,binary);
+	toInsert->next = temp;
+	table->table[index] = toInsert;
 
 }
 
-char* hashSearch(int key,boolean compress) {
-	if (key == -1) {
-		return NULL;
-	}
+char* hashSearch(char* word, char* binary,boolean compress) {
+	int index = -1;
 	if (compress == true) {
-		return table[key]->binary;
+		index = hashcodeWord(word);
+		hashNode* temp = table->table[index];
+		hashNode* temp2 = temp;
+		while (temp2) {
+			if (compareString(temp2->word,word) == 0) {
+				return temp2->binary;
+			}
+			temp2 = temp2->next;
+		}
 	} else {
-		return table[key]->word;
+		index = hashcodeBin(binary);
+		hashNode* temp = table->table[index];
+		hashNode* temp2 = temp;
+		while (temp2) {
+			if (compareString(temp2->binary,binary)) {
+				return temp2->word;
+			}
+			temp2 = temp2->next;
+		}
 	}
+	return NULL;//not found
 	
 }
 
@@ -354,12 +378,75 @@ void buildHuff() {
 void compress(char* toCompress) {
 	int codebook;
 	codebook = open("./HuffmanCodebook", O_RDONLY);
-	
+	storeHash(codebook);
 	int compressed;
 	char* newFile = combineString(toCompress,".hcz");
 	compressed = open(newFile,O_WRONLY | O_CREAT | O_TRUNC,00600);
 	printf("file created %s\n",newFile);
 }
+
+void storeHash(int codebook) {
+	int status = 1;
+	int bytesRead = 0;
+	char tabDelim = '\t';
+	char spaceDelim = ' ';
+	char lineDelim = '\n';
+	char* holder;
+	boolean moreStuff = false;
+	boolean first = true;
+	while (status > 0) {
+		char buffer[101];
+		memset(buffer,'\0',101);
+		int readIn = 0;
+		do {
+			status = read(fileParse,buffer,100-readIn);
+			if (status == 0) {
+				break;
+			}
+			readIn+= status;
+		}while(readIn < 100);
+		int end = 0;
+		int start = 0;
+		char* temp;//binary
+		char* temp2;//word
+		while (end < 100) {
+			if (buffer[end] == lineDelim) {
+				if (first) {
+					start = end + 1;
+					end++;
+					first = false;
+					continue;
+				} else {
+					temp2 = substring(buffer,start,end);
+					hashInsert(temp,temp2,compBool;	
+				}
+			}
+			if (buffer[end] == tabDelim) {
+				temp = substring(buffer,start,end);
+				if (moreStuff) {
+					holder = combineString(holder,temp);
+					moreStuff = false;
+				}
+				start = end+1;
+			}
+			if (end == 99) {
+				if (moreStuff) {
+				holder = combineString(holder,buffer);
+				} else {
+				holder = substring(buffer,start,-1);
+				}
+				moreStuff = true;
+			}
+			if (buffer[end] == '\0') {
+				break;	
+			}
+			end++;
+		}
+		
+	}		
+	close(fileParse);
+}
+
 heapItem poll() {
 	if (heapSize == 1) {
 		heapSize--;
