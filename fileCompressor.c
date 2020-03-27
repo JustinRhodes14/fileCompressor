@@ -12,7 +12,8 @@
 //Making an array of BSTNodes is as follows:
 //	Node** <arrname> = (Node**)malloc(<size of arr> * sizeof(Node*))
 //		loop through and malloc each individual Node* using previous malloc
-
+//Things to account for: having escape character taken by one of the words
+//
 typedef enum boolin { true = 1, false = 0}boolean;
 
 typedef struct bstNode {
