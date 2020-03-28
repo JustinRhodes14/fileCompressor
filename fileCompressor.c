@@ -72,6 +72,10 @@ int hashcodeBin(char*);//computes the hashcode for the binary (used for decompre
 int hashcodeWord(char*);//computes the hashcode for the word (used for compress)
 void hashInsert(char*,char*,boolean);//inserts binary and word into hashtable
 char* hashSearch(char*,char*,boolean);
+void readHuff(int,boolean);
+void storeHuff(char*,boolean);
+void writeTo(int,char*);
+
 Node* root;//our tree node, initially we store all the values in here and then into our heap
 int nodeCount = 0;//amount of items in our tree
 int heapSize = 0;
@@ -87,6 +91,8 @@ char* coding = " ";//used to  encode the binary for huffman
 
 hashTable* table;
 int hashSize = 0; //size of hash table
+char* escapeChar = "!\0";
+
 
 
 int main(int argc, char** argv) {
@@ -162,7 +168,7 @@ int main(int argc, char** argv) {
 			int fd;
 			printf("location of codebook is: %s\n\n", path);
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
-			int a = write(fd, "$\n", 2);
+			int a = write(fd,"!\0" , 2);
 
 			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 			
@@ -176,8 +182,8 @@ int main(int argc, char** argv) {
 			buildHuff();
 			printhuffTree(heapArr[0].tree,codeArr,0,fd);
 		} else if (flag == 'c') {
-			compress(argv[2]);
 			tableInit(1000);
+			compress(argv[2]);
 		} else if (flag == 'd') {
 
 		}
@@ -213,7 +219,6 @@ int hashcodeBin(char* binary) {
 	for (i = 0; i < len; i++) {
 		code += (binary[0] - 0);
 	}
-	printf("val of code:%d\n",code);
 	return (code % hashSize);
 }
 
@@ -224,7 +229,6 @@ int hashcodeWord(char* word) {
 	for (i = 0; i < len; i++) {
 		code += (word[0] - 0);
 	}
-	printf("val of code:%d\n",code);
 	return (code % hashSize);
 }
 
@@ -235,7 +239,6 @@ void hashInsert(char* word, char* binary,boolean compress) {
 	} else {
 		index = hashcodeBin(binary);
 	}
-	printf("val of index: %d\n",index);
 	if (index == -1) {
 		printf("error in hashInsert\n");
 		exit(0);	
@@ -262,6 +265,7 @@ char* hashSearch(char* word, char* binary,boolean compress) {
 		hashNode* temp2 = temp;
 		while (temp2) {
 			if (compareString(temp2->word,word) == 0) {
+				printf("Found word:%s, returning binary: %s\n",temp2->word,temp2->binary);
 				return temp2->binary;
 			}
 			temp2 = temp2->next;
@@ -271,7 +275,8 @@ char* hashSearch(char* word, char* binary,boolean compress) {
 		hashNode* temp = table->table[index];
 		hashNode* temp2 = temp;
 		while (temp2) {
-			if (compareString(temp2->binary,binary)) {
+			if (compareString(temp2->binary,binary) == 0) {
+				printf("Found binary:%s, returning word: %s\n",temp2->binary,temp2->word);
 				return temp2->word;
 			}
 			temp2 = temp2->next;
@@ -378,14 +383,13 @@ void buildHuff() {
 void compress(char* toCompress) {
 	int codebook;
 	codebook = open("./HuffmanCodebook", O_RDONLY);
-	storeHash(codebook);
+	readHuff(codebook,true);
 	int compressed;
 	char* newFile = combineString(toCompress,".hcz");
 	compressed = open(newFile,O_WRONLY | O_CREAT | O_TRUNC,00600);
 	printf("file created %s\n",newFile);
-}
-
-void storeHash(int codebook) {
+	
+	int fileParse = open(toCompress, O_RDONLY);
 	int status = 1;
 	int bytesRead = 0;
 	char tabDelim = '\t';
@@ -393,7 +397,6 @@ void storeHash(int codebook) {
 	char lineDelim = '\n';
 	char* holder;
 	boolean moreStuff = false;
-	boolean first = true;
 	while (status > 0) {
 		char buffer[101];
 		memset(buffer,'\0',101);
@@ -407,25 +410,38 @@ void storeHash(int codebook) {
 		}while(readIn < 100);
 		int end = 0;
 		int start = 0;
-		char* temp;//binary
-		char* temp2;//word
 		while (end < 100) {
-			if (buffer[end] == lineDelim) {
-				if (first) {
+			char* temp;
+			if (buffer[end] == tabDelim || buffer[end] == spaceDelim || buffer[end] == lineDelim) {
+				temp = substring(buffer,start,end);
+				/*if ((temp[0] - 0) < 32 || (temp[0] - 0) > 127) {
 					start = end + 1;
 					end++;
-					first = false;
 					continue;
-				} else {
-					temp2 = substring(buffer,start,end);
-					hashInsert(temp,temp2,compBool;	
-				}
-			}
-			if (buffer[end] == tabDelim) {
-				temp = substring(buffer,start,end);
+				}*/
 				if (moreStuff) {
 					holder = combineString(holder,temp);
+					char* binInsert = hashSearch(holder,NULL,true);
+					writeTo(compressed,binInsert);
+					writeTo(compressed," \0");
 					moreStuff = false;
+				} else {
+					char* binInsert = hashSearch(temp,NULL,true);
+					writeTo(compressed,binInsert);
+					writeTo(compressed," \0");
+				}
+				if (buffer[end] == tabDelim) {
+					char* binInsert = hashSearch("!t\0",NULL,true);
+					writeTo(compressed,binInsert);
+					writeTo(compressed," \0");
+				} else if (buffer[end] == spaceDelim) {
+					char* binInsert = hashSearch("!s\0",NULL,true);
+					writeTo(compressed,binInsert);
+					writeTo(compressed," \0");
+				} else {
+					char* binInsert = hashSearch("!n\0",NULL,true);
+					writeTo(compressed,binInsert);
+					writeTo(compressed," \0");
 				}
 				start = end+1;
 			}
@@ -445,6 +461,90 @@ void storeHash(int codebook) {
 		
 	}		
 	close(fileParse);
+}
+
+void writeTo(int fd,char* word) {
+	int bytesWritten = 0;
+	int bytestoWrite = strlen(word);
+	while (bytesWritten < bytestoWrite) {
+		bytesWritten = write(fd,word,bytestoWrite-bytesWritten);
+	}
+}
+
+void readHuff(int codebook,boolean compBool) {
+	int status = 1;
+	int bytesRead = 0;
+	char tabDelim = '\t';
+	char spaceDelim = ' ';
+	char lineDelim = '\n';
+	char* holder;
+	boolean moreStuff = false;
+	boolean first = true;
+	while (status > 0) {
+		char buffer[101];
+		memset(buffer,'\0',101);
+		int readIn = 0;
+		do {
+			status = read(codebook,buffer,100-readIn);
+			if (status == 0) {
+				break;
+			}
+			readIn+= status;
+		}while(readIn < 100);
+		int end = 0;
+		int start = 0;
+		while (end < 100) {
+			char* temp;
+			if (buffer[end] == lineDelim) {
+				if (first) {	
+					start = end + 1;
+					end++;
+					first = false;
+					continue;
+				} else {
+					temp = substring(buffer,start,end);
+					if (moreStuff) {
+						holder = combineString(holder,temp);
+						moreStuff = false;
+						storeHuff(holder,compBool);	
+					} else {
+						storeHuff(temp,compBool);
+					}
+					start = end + 1;
+				}
+			} 
+			if (end == 99) {
+				if (moreStuff) {
+				holder = combineString(holder,buffer);
+				} else {
+				holder = substring(buffer,start,-1);
+				}
+				moreStuff = true;
+			}
+			if (buffer[end] == '\0') {
+				break;	
+			}
+			end++;
+		}
+		
+	}		
+	close(codebook);
+}
+
+void storeHuff(char* line,boolean comp) {
+	int length = strlen(line);
+	int start = 0;
+	int end = 0;
+	char* binary;//binary
+	char* word;//word
+	while (line[end] != '\t') {
+		end++;
+	}
+	binary = substring(line,start,end);
+	word = substring(line,end+1,-1);
+	printf("code: %s, word: %s\n",binary,word);
+	hashInsert(word,binary,comp);
+	hashSearch(word,binary,comp);
 }
 
 heapItem poll() {
@@ -552,24 +652,25 @@ void readFile(char* fileName) {
 				temp = substring(buffer,start,end);
 				char* delimInsert = (char*)malloc(3 * sizeof(char));
 				if (buffer[end] == tabDelim) {
-					delimInsert[0] = '$';
+					delimInsert[0] = '!';
 					delimInsert[1] = 't';
 					delimInsert[2] = '\0';
 				} else if (buffer[end] == spaceDelim) {
-					delimInsert[0] = '$';
+					delimInsert[0] = '!';
 					delimInsert[1] = 's';
 					delimInsert[2] = '\0';
 				} else {
-					delimInsert[0] = '$';
+					delimInsert[0] = '!';
 					delimInsert[1] = 'n';
 					delimInsert[2] = '\0';
 				}
 				bstInsert(delimInsert);
-				if ((temp[0] - 0) < 32 || (temp[0] - 0) > 127) {
+				/*if ((temp[0] - 0) < 32 || (temp[0] - 0) > 127) {
 					start = end + 1;
 					end++;
+					printf("useful?\n");
 					continue;
-				}
+				}*/
 				if (moreStuff) {
 					holder = combineString(holder,temp);
 					bstInsert(holder);
