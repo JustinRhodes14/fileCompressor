@@ -12,8 +12,7 @@
 //Making an array of BSTNodes is as follows:
 //	Node** <arrname> = (Node**)malloc(<size of arr> * sizeof(Node*))
 //		loop through and malloc each individual Node* using previous malloc
-//Things to account for: having escape character taken by one of the words
-//
+//Bugs to fix: Rehashing, escape character, error handling, maybe new line?
 typedef enum boolin { true = 1, false = 0}boolean;
 typedef enum _fMode {BUILD = 2, COMPRESS = 1, DECOMPRESS = 0}fMode;
 
@@ -66,6 +65,7 @@ int compareString(char*,char*);//compares two strings and returns a negative num
 void readFile(char*);//reads data from a file, used for the -b flag
 void listDirectories(char*,int);//lists all directories and calls readFile() on all the files, used for the -b flag
 void compress(char*);//compresses all the data from a .txt file and outputs a .txt.hcz file with the compressed data
+void decompress(char*);
 int* arrInit(int*);//initializes the array that allows us to compute each huffmancode
 char* printArr(int*,int);//allows for us to store the code into our codebook
 void tableInit(int);//initializes our global hash table
@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
 			tableInit(1000);
 			listDirectories(argv[3],1);
 		} else if (flag == 'd') {
-
+			printf("error\n");	
 		}
 	} else {
 		if (flag == 'b') {
@@ -188,7 +188,8 @@ int main(int argc, char** argv) {
 			tableInit(1000);
 			compress(argv[2]);
 		} else if (flag == 'd') {
-
+			tableInit(1000);
+			decompress(argv[2]);
 		}
 	}
 	/*
@@ -422,28 +423,23 @@ void compress(char* toCompress) {
 						holder = combineString(holder,temp);
 						char* binInsert = hashSearch(holder,NULL,true);
 						writeTo(compressed,binInsert);
-						writeTo(compressed," \0");
 						moreStuff = false;
 					}
 				} else {
 					if (strlen(temp) != 0) {
 						char* binInsert = hashSearch(temp,NULL,true);
 						writeTo(compressed,binInsert);
-						writeTo(compressed," \0");
 					}
 				}
 				if (buffer[end] == tabDelim) {
 					char* binInsert = hashSearch("!t\0",NULL,true);
 					writeTo(compressed,binInsert);
-					writeTo(compressed," \0");
 				} else if (buffer[end] == spaceDelim) {
 					char* binInsert = hashSearch("!s\0",NULL,true);
 					writeTo(compressed,binInsert);
-					writeTo(compressed," \0");
 				} else if (buffer[end] == lineDelim) {
 					char* binInsert = hashSearch("!n\0",NULL,true);
 					writeTo(compressed,binInsert);
-					writeTo(compressed," \0");
 				}
 				start = end+1;
 			}
@@ -472,7 +468,78 @@ void writeTo(int fd,char* word) {
 		bytesWritten = write(fd,word,bytestoWrite-bytesWritten);
 	}
 }
-
+void decompress(char* toDecompress) {
+	//maybe better to just read in entire binary of file into one really large string
+	//then parse the entire string one thing at a time and right to file accordingly
+	int codebook;
+	codebook = open("./HuffmanCodebook", O_RDONLY);
+	readHuff(codebook,false);
+	int decompressed;
+	char* output = substring(toDecompress,0,(strlen(toDecompress)-4));
+	decompressed = open(output,O_WRONLY | O_CREAT | O_TRUNC,00600);
+	printf("file created %s\n",output);
+	
+	int fileParse = open(toDecompress, O_RDONLY);
+	int status = 1;
+	int bytesRead = 0;
+	char tabDelim = '\t';
+	char spaceDelim = ' ';
+	char lineDelim = '\n';
+	char* holder;
+	boolean moreStuff = false;
+	while (status > 0) {
+		char buffer[101];
+		memset(buffer,'\0',101);
+		int readIn = 0;
+		do {
+			status = read(fileParse,buffer,100-readIn);
+			if (status == 0) {
+				break;
+			}
+			readIn+= status;
+		}while(readIn < 100);
+		int end = 0;
+		int start = 0;
+		printf("bufffer:%s\n",buffer);
+		while (end < 100) {
+			char* temp;
+			char* word;
+			temp = substring(buffer,start,end);
+			if (moreStuff) {
+				combineString(holder,temp);
+				word = hashSearch(NULL,holder,false);		
+			} else {
+				word = hashSearch(NULL,temp,false);	
+			}
+			if (word != NULL) {
+				printf("word:%s\n",word);
+				if (compareString(word,"!t\0") == 0) {
+					writeTo(decompressed,"\t\0");
+				} else if (compareString(word,"!s\0") == 0) {
+					writeTo(decompressed," \0");
+				} else if (compareString(word,"!n\0") == 0) {
+					writeTo(decompressed,"\n\0");
+				} else {
+					writeTo(decompressed,word);
+				}
+			}	
+			if (end == 99) {
+				if (moreStuff) {
+				holder = combineString(holder,buffer);
+				} else {
+				holder = substring(buffer,start,-1);
+				}
+				moreStuff = true;
+			}
+			if (buffer[end] == '\0') {
+				break;	
+			}
+			end++;
+		}
+		
+	}		
+	close(fileParse);
+}
 void readHuff(int codebook,boolean compBool) {
 	int status = 1;
 	int bytesRead = 0;
