@@ -527,7 +527,8 @@ void readHuff(int codebook,boolean compBool) {
 			end++;
 		}
 		
-	}		
+	}	
+	printf("\ndonereading\n\n");	
 	close(codebook);
 }
 
