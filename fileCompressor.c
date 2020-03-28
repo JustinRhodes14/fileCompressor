@@ -15,6 +15,7 @@
 //Things to account for: having escape character taken by one of the words
 //
 typedef enum boolin { true = 1, false = 0}boolean;
+typedef enum _fMode {BUILD = 2, COMPRESS = 1, DECOMPRESS = 0}fMode;
 
 typedef struct bstNode {
 	int freq; //If node is just the combined frequency, only init the freq
@@ -63,7 +64,7 @@ char* combineString(char*,char*); //combines two strings and returns combined st
 char* substring(char*,int,int); //cuts a string starting from a certain index
 int compareString(char*,char*);//compares two strings and returns a negative number if the first one is lesser, and a pos number if the first one is greater 
 void readFile(char*);//reads data from a file, used for the -b flag
-void listDirectories(char*);//lists all directories and calls readFile() on all the files, used for the -b flag
+void listDirectories(char*,int);//lists all directories and calls readFile() on all the files, used for the -b flag
 void compress(char*);//compresses all the data from a .txt file and outputs a .txt.hcz file with the compressed data
 int* arrInit(int*);//initializes the array that allows us to compute each huffmancode
 char* printArr(int*,int);//allows for us to store the code into our codebook
@@ -128,7 +129,7 @@ int main(int argc, char** argv) {
 	//call flag functions
 	if (recursive) {
 		if (flag == 'b') {
-			listDirectories(argv[3]);
+			listDirectories(argv[3],0);
 			int fd;
 			printf("location of codebook is: ./");
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
@@ -147,7 +148,8 @@ int main(int argc, char** argv) {
 			buildHuff();
 			printhuffTree(heapArr[0].tree,codeArr,0,fd);
 		} else if (flag == 'c') {
-
+			tableInit(1000);
+			listDirectories(argv[3],1);
 		} else if (flag == 'd') {
 
 		}
@@ -415,21 +417,20 @@ void compress(char* toCompress) {
 			char* temp;
 			if (buffer[end] == tabDelim || buffer[end] == spaceDelim || buffer[end] == lineDelim) {
 				temp = substring(buffer,start,end);
-				if ((temp[0] - 0) < 32 || (temp[0] - 0) > 127) {
-					start = end+1;
-					end++;
-					continue;
-				}
 				if (moreStuff) {
-					holder = combineString(holder,temp);
-					char* binInsert = hashSearch(holder,NULL,true);
-					writeTo(compressed,binInsert);
-					writeTo(compressed," \0");
-					moreStuff = false;
+					if (strlen(holder) != 0) {
+						holder = combineString(holder,temp);
+						char* binInsert = hashSearch(holder,NULL,true);
+						writeTo(compressed,binInsert);
+						writeTo(compressed," \0");
+						moreStuff = false;
+					}
 				} else {
-					char* binInsert = hashSearch(temp,NULL,true);
-					writeTo(compressed,binInsert);
-					writeTo(compressed," \0");
+					if (strlen(temp) != 0) {
+						char* binInsert = hashSearch(temp,NULL,true);
+						writeTo(compressed,binInsert);
+						writeTo(compressed," \0");
+					}
 				}
 				if (buffer[end] == tabDelim) {
 					char* binInsert = hashSearch("!t\0",NULL,true);
@@ -599,7 +600,7 @@ void heapify2(int i) {
 		heapify2(small);
 	}
 }
-void listDirectories(char* path) {
+void listDirectories(char* path,int mode) {
 		
 	DIR *d;
 	struct dirent *dir;
@@ -615,11 +616,17 @@ void listDirectories(char* path) {
 			char* temp = combineString(path,"/");
 			temp = combineString(temp,dir->d_name);
 			printf("temp is: %s\n", temp);
-			listDirectories(temp);
+			listDirectories(temp,mode);
 		} else {
+			
 			char* temp = combineString(path,"/");
-			temp = combineString(temp,dir->d_name); 
-			readFile(temp);
+			temp = combineString(temp,dir->d_name);
+			if (mode == 0) { //build
+				readFile(temp);
+			} else if (mode == 1) {//compress
+				compress(temp);
+				printf("modemode:%s\n",temp);
+			}
 			printf("file: %s\n",dir->d_name);
 		}
 	}
@@ -652,32 +659,65 @@ void readFile(char* fileName) {
 			char* temp;
 			if (buffer[end] == tabDelim || buffer[end] == spaceDelim || buffer[end] == lineDelim) {
 				temp = substring(buffer,start,end);
-				char* delimInsert = (char*)malloc(3 * sizeof(char));
-				if (buffer[end] == tabDelim) {
+				/*if (temp[0] == tabDelim) {
+					char* delimInsert = (char*)malloc(3*sizeof(char));
 					delimInsert[0] = '!';
 					delimInsert[1] = 't';
 					delimInsert[2] = '\0';
-				} else if (buffer[end] == spaceDelim) {
-					delimInsert[0] = '!';
-					delimInsert[1] = 's';
-					delimInsert[2] = '\0';
-				} else {
+					bstInsert(delimInsert);
+					start = end+1;
+					end++;
+					printf("val of temp0: %c\n",temp[0]);
+					continue;
+				} else if (temp[0] == lineDelim) {
+					char* delimInsert = (char*)malloc(3*sizeof(char));
 					delimInsert[0] = '!';
 					delimInsert[1] = 'n';
 					delimInsert[2] = '\0';
-				}
-				bstInsert(delimInsert);
-				if ((temp[0] - 0) < 32 || (temp[0] - 0) > 127) {
-					start = end + 1;
+					bstInsert(delimInsert);
+					start = end+1;
+					end++;
+					continue;
+				} else if (temp[0] == spaceDelim) {
+					char* delimInsert = (char*)malloc(3*sizeof(char));
+					delimInsert[0] = '!';
+					delimInsert[1] = 's';
+					delimInsert[2] = '\0';
+					bstInsert(delimInsert);
+					start = end+1;
 					end++;
 					continue;
 				}
+				*/
+				if (buffer[end] == tabDelim) {
+					char* delimInsert2 = (char*)malloc(3 * sizeof(char));
+					delimInsert2[0] = '!';
+					delimInsert2[1] = 't';
+					delimInsert2[2] = '\0';
+					bstInsert(delimInsert2);	
+				} else if (buffer[end] == spaceDelim) {
+					char* delimInsert2 = (char*)malloc(3 * sizeof(char));
+					delimInsert2[0] = '!';
+					delimInsert2[1] = 's';
+					delimInsert2[2] = '\0';
+					bstInsert(delimInsert2);
+				} else {
+					char* delimInsert2 = (char*)malloc(3 * sizeof(char));
+					delimInsert2[0] = '!';
+					delimInsert2[1] = 'n';
+					delimInsert2[2] = '\0';
+					bstInsert(delimInsert2);
+				}
 				if (moreStuff) {
 					holder = combineString(holder,temp);
-					bstInsert(holder);
-					moreStuff = false;
+					if (strlen(holder) != 0) {
+						bstInsert(holder);
+						moreStuff = false;
+					}
 				} else {
-					bstInsert(temp);
+					if (strlen(temp) != 0) {
+						bstInsert(temp);
+					}
 				}
 				start = end+1;
 			}
