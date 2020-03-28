@@ -132,7 +132,8 @@ int main(int argc, char** argv) {
 			int fd;
 			printf("location of codebook is: ./");
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
-			int a = write(fd, "!\n", 2);
+			int a = write(fd, "!", 1);
+			int b = write(fd, "\n",1);
 
 			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 			
@@ -168,8 +169,8 @@ int main(int argc, char** argv) {
 			int fd;
 			printf("location of codebook is: %s\n\n", path);
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
-			int a = write(fd,"!\0" , 2);
-
+			int a = write(fd,"!" , 1);
+			int b = write(fd,"\n",1);
 			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 			
 			heapInit();
@@ -414,11 +415,11 @@ void compress(char* toCompress) {
 			char* temp;
 			if (buffer[end] == tabDelim || buffer[end] == spaceDelim || buffer[end] == lineDelim) {
 				temp = substring(buffer,start,end);
-				/*if ((temp[0] - 0) < 32 || (temp[0] - 0) > 127) {
-					start = end + 1;
+				if ((temp[0] - 0) < 32 || (temp[0] - 0) > 127) {
+					start = end+1;
 					end++;
 					continue;
-				}*/
+				}
 				if (moreStuff) {
 					holder = combineString(holder,temp);
 					char* binInsert = hashSearch(holder,NULL,true);
@@ -438,7 +439,7 @@ void compress(char* toCompress) {
 					char* binInsert = hashSearch("!s\0",NULL,true);
 					writeTo(compressed,binInsert);
 					writeTo(compressed," \0");
-				} else {
+				} else if (buffer[end] == lineDelim) {
 					char* binInsert = hashSearch("!n\0",NULL,true);
 					writeTo(compressed,binInsert);
 					writeTo(compressed," \0");
@@ -666,12 +667,11 @@ void readFile(char* fileName) {
 					delimInsert[2] = '\0';
 				}
 				bstInsert(delimInsert);
-				/*if ((temp[0] - 0) < 32 || (temp[0] - 0) > 127) {
+				if ((temp[0] - 0) < 32 || (temp[0] - 0) > 127) {
 					start = end + 1;
 					end++;
-					printf("useful?\n");
 					continue;
-				}*/
+				}
 				if (moreStuff) {
 					holder = combineString(holder,temp);
 					bstInsert(holder);
