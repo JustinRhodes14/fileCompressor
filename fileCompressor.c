@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
 			int fd;
 			printf("location of codebook is: ./");
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
-			int a = write(fd, "$\n", 2);
+			int a = write(fd, "!\n", 2);
 
 			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 			
