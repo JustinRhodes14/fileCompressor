@@ -1,20 +1,6 @@
-hello 
-hello hi  hi hello
 
 
+file1: button @n
 
-
-
-hello			hi
-
-hello 1
-hi 1
-\t
-
-'\t' 
-
-
-
-
-
+file2: dog !n button
 

@@ -648,6 +648,7 @@ void readFile(char* fileName) {
 		int readIn = 0;
 		do {
 			status = read(fileParse,buffer,100-readIn);
+			printf("status: %d\n", status);
 			if (status == 0) {
 				break;
 			}
@@ -656,67 +657,33 @@ void readFile(char* fileName) {
 		int end = 0;
 		int start = 0;
 		while (end < 100) {
+			if (buffer[end] == '\0') {
+				break;	
+			}
 			char* temp;
 			if (buffer[end] == tabDelim || buffer[end] == spaceDelim || buffer[end] == lineDelim) {
 				temp = substring(buffer,start,end);
-				/*if (temp[0] == tabDelim) {
-					char* delimInsert = (char*)malloc(3*sizeof(char));
-					delimInsert[0] = '!';
-					delimInsert[1] = 't';
-					delimInsert[2] = '\0';
-					bstInsert(delimInsert);
-					start = end+1;
-					end++;
-					printf("val of temp0: %c\n",temp[0]);
-					continue;
-				} else if (temp[0] == lineDelim) {
-					char* delimInsert = (char*)malloc(3*sizeof(char));
-					delimInsert[0] = '!';
-					delimInsert[1] = 'n';
-					delimInsert[2] = '\0';
-					bstInsert(delimInsert);
-					start = end+1;
-					end++;
-					continue;
-				} else if (temp[0] == spaceDelim) {
-					char* delimInsert = (char*)malloc(3*sizeof(char));
-					delimInsert[0] = '!';
-					delimInsert[1] = 's';
-					delimInsert[2] = '\0';
-					bstInsert(delimInsert);
-					start = end+1;
-					end++;
-					continue;
-				}
-				*/
 				if (buffer[end] == tabDelim) {
-					char* delimInsert2 = (char*)malloc(3 * sizeof(char));
-					delimInsert2[0] = '!';
-					delimInsert2[1] = 't';
-					delimInsert2[2] = '\0';
-					bstInsert(delimInsert2);	
+					//bstInsert(combineString(escapeChar,"t\0");
+					bstInsert("!t\0");
 				} else if (buffer[end] == spaceDelim) {
-					char* delimInsert2 = (char*)malloc(3 * sizeof(char));
-					delimInsert2[0] = '!';
-					delimInsert2[1] = 's';
-					delimInsert2[2] = '\0';
-					bstInsert(delimInsert2);
-				} else {
-					char* delimInsert2 = (char*)malloc(3 * sizeof(char));
-					delimInsert2[0] = '!';
-					delimInsert2[1] = 'n';
-					delimInsert2[2] = '\0';
-					bstInsert(delimInsert2);
+					//bstInsert(combineString(escapeChar,"s\0");
+					bstInsert("!s\0");
+				} else if (buffer[end] == lineDelim) {
+					//bstInsert(combineString(escapeChar,"n\0");
+					bstInsert("!n\0");
 				}
 				if (moreStuff) {
 					holder = combineString(holder,temp);
 					if (strlen(holder) != 0) {
 						bstInsert(holder);
 						moreStuff = false;
+						printf("insertHOLDER\n");
 					}
 				} else {
 					if (strlen(temp) != 0) {
 						bstInsert(temp);
+						printf("inserting temp %s\n", temp);
 					}
 				}
 				start = end+1;
@@ -729,12 +696,8 @@ void readFile(char* fileName) {
 				}
 				moreStuff = true;
 			}
-			if (buffer[end] == '\0') {
-				break;	
-			}
 			end++;
-		}
-		
+		}	
 	}		
 	close(fileParse);
 }
