@@ -102,17 +102,55 @@ char* escapeChar = "!\0";
 
 
 int main(int argc, char** argv) {
-	if (argc < 3) {
-		printf("Fatal Error: expected at least 3 arguments\n");
-		exit(0);
-	} else if (argc > 5) {
-		printf("Fatal Error: expected at most 5 arguments\n");
-		exit(0);
+	//need to finish error checks tmrw b4 doin anything	
+	if (argc == 3) {//non-recursive
+		if (strlen(argv[1]) < 2 || strlen(argv[1]) > 2) {
+			printf("Fatal Error: Invalid flags used\n");
+			exit(0);
+		}
+		if (argv[1][0] != '-' || argv[1][1] != 'b') {
+			printf("Fatal error: Invalid flags used\n");
+			exit(0);
+		}
+		int fd = open(argv[2],O_RDONLY);
+		if (fd == -1) {
+			printf("Fatal Error: %s is not a valid file name or directory\n",argv[2]);
+			exit(0);
+		}
+		close(fd);
+	} else if (argc == 4) {//recursive build, nonrecursive compress, nonrecursive decompress
+		if (strlen(argv[1]) < 2 || strlen(argv[1]) > 2) {
+			printf("Fatal Error: Invalid flags used\n");
+			exit(0);
+		}
+		if (argv[1][0] != '-' || argv[1][1] != 'R'|| argv[1][1] != 'b' || argv[1][1] != 'c' || argv[1][1] != 'd') {
+			printf("Fatal Error: Invalid flags used\n");
+			exit(0);	
+		}
+		if (argv[1][1] == 'R') {
+			if (strlen(argv[2]) < 2 || strlen(argv[2]) > 2) {
+				printf("Fatal Error: Invalid flags used\n");
+				exit(0);
+			}
+			if (argv[2][0] != '-' || argv[2][1] != 'b') {
+				printf("Fatal Error: Invalid flags used\n");
+				exit(0);
+			}
+		}
+	} else if (argc == 5) { //recursive compress
+	
+	} else {
+		printf("Fatal Error: expected between 3 and 5 arguments\n");
 	}
-
 	//check flag
 	char flag;
 	boolean recursive = false;
+	
+	if (argv[1][0] != '-') {
+		printf("Fatal Error: You must have a dash '-' in front of your flag\n");
+		exit(0);
+	}
+	
 	if (argv[1][1] != 'R') {
 		flag = argv[1][1];
 		if (argv[2][0] == '-') {
@@ -120,23 +158,25 @@ int main(int argc, char** argv) {
 		}
 		printf("flag is: %c\n", argv[1][1]);
 	} else {
-		printf("flag is %c\n", argv[2][1]);
+		if (argv[2][0] != '-') {
+			printf("Fatal Error: You must have a dash '-' in front of your flag\n");
+			exit(0);
+		}
 		flag = argv[2][1];
 		recursive = true;
 	}
-
-	if (recursive == true) { //just to check
-		printf("recursive flag on\n\n");
-	} else {
-		printf("recursive flag off\n\n");
+	if (flag != 'b' || flag != 'c' || flag != 'd') {
+		printf("Fatal Error: %c is not a valid flag\n");
+		exit(0);
 	}
-
+	
+	printf("flag is %c\n", argv[2][1]);
 	//call flag functions
 	if (recursive) {
 		if (flag == 'b') {
 			listDirectories(argv[3],0);
 			int fd;
-			printf("location of codebook is: ./");
+			printf("location of codebook is: ./\n");
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
 			int a = write(fd, "!", 1);
 			int b = write(fd, "\n",1);
@@ -144,7 +184,6 @@ int main(int argc, char** argv) {
 			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 			
 			heapInit();
-			printf("PRINTING BST, NODECOUNT: %d\n", nodeCount);
 			printBst(root);
 			heapSize = nodeCount;
 			int* codeArr = arrInit(codeArr);
@@ -176,7 +215,6 @@ int main(int argc, char** argv) {
 			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 			
 			heapInit();
-			printf("PRINTING BST, NODECOUNT: %d\n", nodeCount);
 			printBst(root);
 			heapSize = nodeCount;
 			int* codeArr = arrInit(codeArr);
@@ -448,17 +486,16 @@ void compress(char* toCompress) {
 						writeTo(compressed,binInsert);
 					}
 				}
+				free(temp);
+				char* binInsert2;
 				if (buffer[end] == tabDelim) {
-					char* binInsert = hashSearch("!t\0",NULL,true);
-					writeTo(compressed,binInsert);
+					binInsert2 = hashSearch("!t\0",NULL,true);
 				} else if (buffer[end] == spaceDelim) {
-					char* binInsert = hashSearch("!s\0",NULL,true);
-					writeTo(compressed,binInsert);
+					binInsert2 = hashSearch("!s\0",NULL,true);
 				} else if (buffer[end] == lineDelim) {
-					char* binInsert = hashSearch("!n\0",NULL,true);
-					writeTo(compressed,binInsert);
-					
+					binInsert2 = hashSearch("!n\0",NULL,true);
 				}
+				writeTo(compressed,binInsert2);
 				start = end+1;
 			}
 			if (end == 99 && (buffer[end] != spaceDelim && buffer[end] != tabDelim && buffer[end] != lineDelim)) {
@@ -475,7 +512,8 @@ void compress(char* toCompress) {
 			end++;
 		}
 		
-	}		
+	}
+	free(newFile);
 	close(fileParse);
 }
 
@@ -598,12 +636,13 @@ void readHuff(int codebook,boolean compBool) {
 					if (moreStuff) {
 						holder = combineString(holder,temp);
 						moreStuff = false;
-						storeHuff(holder,compBool);	
+						storeHuff(holder,compBool);
 					} else {
 						storeHuff(temp,compBool);
 					}
 					start = end + 1;
 				}
+				free(temp);
 			} 
 			if (end == 99) {
 				if (moreStuff) {
@@ -637,6 +676,8 @@ void storeHuff(char* line,boolean comp) {
 	word = substring(line,end+1,-1);
 	hashInsert(word,binary,comp);
 	hashSearch(word,binary,comp);
+	free(binary);
+	free(word);
 }
 
 heapItem poll() {
@@ -737,7 +778,6 @@ void readFile(char* fileName) {
 		int readIn = 0;
 		do {
 			status = read(fileParse,buffer,100-readIn);
-			printf("status: %d\n", status);
 			if (status == 0) {
 				break;
 			}
@@ -766,13 +806,13 @@ void readFile(char* fileName) {
 					holder = combineString(holder,temp);
 					if (strlen(holder) != 0) {
 						bstInsert(holder);
+						free(holder);
 						moreStuff = false;
-						printf("insertHOLDER\n");
 					}
 				} else {
 					if (strlen(temp) != 0) {
 						bstInsert(temp);
-						printf("inserting temp %s\n", temp);
+						free(temp);
 					}
 				}
 				start = end+1;
@@ -787,7 +827,8 @@ void readFile(char* fileName) {
 			}
 			end++;
 		}	
-	}		
+	}	
+		
 	close(fileParse);
 }
 
@@ -940,7 +981,7 @@ void printBst(Node* ptr) {
 		return;
 	}
 	printBst(ptr->left);
-	printf("BST_NODE: %s: %d\n",ptr->word,ptr->freq);
+	//printf("BST_NODE: %s: %d\n",ptr->word,ptr->freq);
 	heapArr[heapCount].word = copyString(heapArr[heapCount].word,ptr->word);
 	heapArr[heapCount].freq = ptr->freq;
 	heapCount++;
