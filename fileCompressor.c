@@ -12,7 +12,7 @@
 //Making an array of BSTNodes is as follows:
 //	Node** <arrname> = (Node**)malloc(<size of arr> * sizeof(Node*))
 //		loop through and malloc each individual Node* using previous malloc
-//Bugs to fix: Rehashing, escape character, error handling, maybe new line?
+//Bugs to fix:escape character, error handling,freeing
 typedef enum boolin { true = 1, false = 0}boolean;
 typedef enum _fMode {BUILD = 2, COMPRESS = 1, DECOMPRESS = 0}fMode;
 
@@ -76,7 +76,9 @@ char* hashSearch(char*,char*,boolean);
 void readHuff(int,boolean);
 void storeHuff(char*,boolean);
 void writeTo(int,char*);
-
+void tableFree(int);
+void treeFree(Node*);
+void freeHeap();
 Node* root;//our tree node, initially we store all the values in here and then into our heap
 int nodeCount = 0;//amount of items in our tree
 int heapSize = 0;
@@ -91,7 +93,10 @@ Node* huffmanTree;//used for build, allows us to store our hash items in the cod
 char* coding = " ";//used to  encode the binary for huffman
 
 hashTable* table;
+
+int hashElements = 0;//number of elements in hashTable
 int hashSize = 0; //size of hash table
+
 char* escapeChar = "!\0";
 
 
@@ -147,9 +152,14 @@ int main(int argc, char** argv) {
 			printHeap();
 			buildHuff();
 			printhuffTree(heapArr[0].tree,codeArr,0,fd);
+			free(codeArr);
+			free(root);
+			free(huffmanTree);
+			freeHeap();
 		} else if (flag == 'c') {
 			tableInit(1000);
 			listDirectories(argv[3],1);
+			tableFree(1000);
 		} else if (flag == 'd') {
 			printf("error\n");	
 		}
@@ -158,16 +168,6 @@ int main(int argc, char** argv) {
 			char* path = argv[2]; //all files within this directory will be indexed into HuffmanCodebook
 			printf("path is: %s\n", path);
 			readFile(path);	
-			/*int file;
-			mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-			file = open(path, O_RDONLY, mode);	
-
-			char temp[101];
-			memset(temp,'\0',100);
-			int a = read(file, temp, 100);
-			temp[100] = '\0';
-			printf("temp is: %s\n", temp);
-			*/
 			int fd;
 			printf("location of codebook is: %s\n\n", path);
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
@@ -184,25 +184,20 @@ int main(int argc, char** argv) {
 			printHeap();
 			buildHuff();
 			printhuffTree(heapArr[0].tree,codeArr,0,fd);
+			free(codeArr);
+			free(root);
+			free(huffmanTree);
+			freeHeap();
 		} else if (flag == 'c') {
 			tableInit(1000);
 			compress(argv[2]);
+			tableFree(1000);
 		} else if (flag == 'd') {
 			tableInit(1000);
 			decompress(argv[2]);
+			tableFree(1000);
 		}
 	}
-	/*
-	heapInit();
-	printf("PRINTING BST, NODECOUNT: %d\n", nodeCount);
-	printBst(root);
-	heapSize = nodeCount;
-	int* codeArr = arrInit(codeArr);
-	constructHeap();
-	printHeap();
-	buildHuff();
-	printhuffTree(heapArr[0].tree,codeArr,0,fd);
-	*/
 	return 0;
 }
 void tableInit(int size) {
@@ -214,6 +209,28 @@ void tableInit(int size) {
 		table->table[i] = NULL;
 	}
 	hashSize = size;
+}
+
+void tableFree(int size) {
+	int i;
+	for (i = 0; i < size; i++) {
+		hashNode* temp = table->table[i];
+		while (temp != NULL) {
+			hashNode* temp2 = temp;
+			temp = temp2->next;
+			free(temp2);
+		}
+	}
+	free(table);
+}
+
+void treeFree(Node* toFree) {
+	if (toFree == NULL) {
+		return;	
+	}
+	treeFree(toFree->left);
+	treeFree(toFree->right);
+	free(toFree);
 }
 
 int hashcodeBin(char* binary) {
@@ -269,7 +286,7 @@ char* hashSearch(char* word, char* binary,boolean compress) {
 		hashNode* temp2 = temp;
 		while (temp2) {
 			if (compareString(temp2->word,word) == 0) {
-				printf("Found word:%s, returning binary: %s\n",temp2->word,temp2->binary);
+				//printf("Found word:%s, returning binary: %s\n",temp2->word,temp2->binary);
 				return temp2->binary;
 			}
 			temp2 = temp2->next;
@@ -280,7 +297,7 @@ char* hashSearch(char* word, char* binary,boolean compress) {
 		hashNode* temp2 = temp;
 		while (temp2) {
 			if (compareString(temp2->binary,binary) == 0) {
-				printf("Found binary:%s, returning word: %s\n",temp2->binary,temp2->word);
+				//printf("Found binary:%s, returning word: %s\n",temp2->binary,temp2->word);
 				return temp2->word;
 			}
 			temp2 = temp2->next;
@@ -440,10 +457,11 @@ void compress(char* toCompress) {
 				} else if (buffer[end] == lineDelim) {
 					char* binInsert = hashSearch("!n\0",NULL,true);
 					writeTo(compressed,binInsert);
+					
 				}
 				start = end+1;
 			}
-			if (end == 99) {
+			if (end == 99 && (buffer[end] != spaceDelim && buffer[end] != tabDelim && buffer[end] != lineDelim)) {
 				if (moreStuff) {
 				holder = combineString(holder,buffer);
 				} else {
@@ -500,19 +518,23 @@ void decompress(char* toDecompress) {
 		}while(readIn < 100);
 		int end = 0;
 		int start = 0;
-		printf("bufffer:%s\n",buffer);
+		//printf("bufffer:%s\n",buffer);
 		while (end < 100) {
 			char* temp;
 			char* word;
 			temp = substring(buffer,start,end);
+			//printf("val of temp:%s\n",temp);
 			if (moreStuff) {
-				combineString(holder,temp);
-				word = hashSearch(NULL,holder,false);		
+				holder = combineString(holder,temp);
+				word = hashSearch(NULL,holder,false);
+				if (word != NULL) {
+					moreStuff = false;
+				}	
 			} else {
 				word = hashSearch(NULL,temp,false);	
 			}
 			if (word != NULL) {
-				printf("word:%s\n",word);
+				//printf("word:%s\n",word);
 				if (compareString(word,"!t\0") == 0) {
 					writeTo(decompressed,"\t\0");
 				} else if (compareString(word,"!s\0") == 0) {
@@ -522,6 +544,7 @@ void decompress(char* toDecompress) {
 				} else {
 					writeTo(decompressed,word);
 				}
+				start = end;
 			}	
 			if (end == 99) {
 				if (moreStuff) {
@@ -596,7 +619,7 @@ void readHuff(int codebook,boolean compBool) {
 			end++;
 		}
 		
-	}	
+	}
 	printf("\ndonereading\n\n");	
 	close(codebook);
 }
@@ -612,7 +635,6 @@ void storeHuff(char* line,boolean comp) {
 	}
 	binary = substring(line,start,end);
 	word = substring(line,end+1,-1);
-	printf("code: %s, word: %s\n",binary,word);
 	hashInsert(word,binary,comp);
 	hashSearch(word,binary,comp);
 }
@@ -776,6 +798,11 @@ void heapInit() {
 		heapArr[i].freq = -1; //indicates no item is inserted
 		heapArr[i].isTree = false;
 	}
+}
+	
+void freeHeap() {
+	int i;
+	free(heapArr);
 }
 
 void constructHeap() {
