@@ -12,7 +12,7 @@
 //Making an array of BSTNodes is as follows:
 //	Node** <arrname> = (Node**)malloc(<size of arr> * sizeof(Node*))
 //		loop through and malloc each individual Node* using previous malloc
-//Bugs to fix:escape character, error handling,freeing
+//Bugs to fix:escape character,freeing
 typedef enum boolin { true = 1, false = 0}boolean;
 typedef enum _fMode {BUILD = 2, COMPRESS = 1, DECOMPRESS = 0}fMode;
 
@@ -63,9 +63,9 @@ char* combineString(char*,char*); //combines two strings and returns combined st
 char* substring(char*,int,int); //cuts a string starting from a certain index
 int compareString(char*,char*);//compares two strings and returns a negative number if the first one is lesser, and a pos number if the first one is greater 
 void readFile(char*);//reads data from a file, used for the -b flag
-void listDirectories(char*,int);//lists all directories and calls readFile() on all the files, used for the -b flag
-void compress(char*);//compresses all the data from a .txt file and outputs a .txt.hcz file with the compressed data
-void decompress(char*);
+void listDirectories(char*,int,char*);//lists all directories and calls readFile() on all the files, used for the -b flag
+void compress(char*,char*);//compresses all the data from a .txt file and outputs a .txt.hcz file with the compressed data
+void decompress(char*,char*);
 int* arrInit(int*);//initializes the array that allows us to compute each huffmancode
 char* printArr(int*,int);//allows for us to store the code into our codebook
 void tableInit(int);//initializes our global hash table
@@ -103,8 +103,10 @@ char* escapeChar = "!\0";
 
 int main(int argc, char** argv) {
 	//need to finish error checks tmrw b4 doin anything	
+	char flag;
+	boolean recursive = false;
 	if (argc == 3) {//non-recursive
-		if (strlen(argv[1]) < 2 || strlen(argv[1]) > 2) {
+		if (strlen(argv[1]) != 2) {
 			printf("Fatal Error: Invalid flags used\n");
 			exit(0);
 		}
@@ -118,17 +120,19 @@ int main(int argc, char** argv) {
 			exit(0);
 		}
 		close(fd);
+		flag = 'b';
+		recursive = false;
 	} else if (argc == 4) {//recursive build, nonrecursive compress, nonrecursive decompress
-		if (strlen(argv[1]) < 2 || strlen(argv[1]) > 2) {
+		if (strlen(argv[1]) != 2) {
 			printf("Fatal Error: Invalid flags used\n");
 			exit(0);
 		}
-		if (argv[1][0] != '-' || argv[1][1] != 'R'|| argv[1][1] != 'b' || argv[1][1] != 'c' || argv[1][1] != 'd') {
+		if (argv[1][0] != '-' || (argv[1][1] != 'R' && argv[1][1] != 'b' && argv[1][1] != 'c' && argv[1][1] != 'd')) {
 			printf("Fatal Error: Invalid flags used\n");
 			exit(0);	
 		}
 		if (argv[1][1] == 'R') {
-			if (strlen(argv[2]) < 2 || strlen(argv[2]) > 2) {
+			if (strlen(argv[2]) != 2) {
 				printf("Fatal Error: Invalid flags used\n");
 				exit(0);
 			}
@@ -136,45 +140,94 @@ int main(int argc, char** argv) {
 				printf("Fatal Error: Invalid flags used\n");
 				exit(0);
 			}
+			int fd = open(argv[3],O_RDONLY);
+			if (fd == -1) {
+				printf("Fatal Error: Invalid directory\n");
+				exit(0);
+			}
+			recursive = true;
+			flag = 'b';
+		} else if (argv[1][1] == 'b') {
+			if (strlen(argv[2]) != 2) {
+				printf("Fatal Error: Invalid flags used\n");
+				exit(0);
+			}
+			if (argv[2][0] != '-' || argv[2][1] != 'R') {
+				printf("Fatal Error: Invalid flags used\n");
+				exit(0);
+			}
+			int fd = open(argv[3],O_RDONLY);
+			if (fd == -1) {
+				printf("Fatal Error: Invalid directory\n");
+				exit(0);
+			}
+			close(fd);
+			flag = 'b';
+			recursive = true;
+		} else if (argv[1][1] == 'c' || argv[1][1] == 'd') { 
+			int fd1 = open(argv[2],O_RDONLY);
+			int fd2 = open(argv[3],O_RDONLY);
+			if (fd1 == -1 || fd2 == -1) {
+				printf("Fatal Error: Invalid file name\n");
+				exit(0);
+			}
+			close(fd1);
+			close(fd2);
+			if (argv[1][1] == 'c') {
+				flag = 'c';
+			} else {
+				flag = 'd';
+			}
+			recursive = false;
 		}
 	} else if (argc == 5) { //recursive compress
-	
-	} else {
-		printf("Fatal Error: expected between 3 and 5 arguments\n");
-	}
-	//check flag
-	char flag;
-	boolean recursive = false;
-	
-	if (argv[1][0] != '-') {
-		printf("Fatal Error: You must have a dash '-' in front of your flag\n");
-		exit(0);
-	}
-	
-	if (argv[1][1] != 'R') {
-		flag = argv[1][1];
-		if (argv[2][0] == '-') {
-			recursive = true;
-		}
-		printf("flag is: %c\n", argv[1][1]);
-	} else {
-		if (argv[2][0] != '-') {
-			printf("Fatal Error: You must have a dash '-' in front of your flag\n");
+		if (strlen(argv[1]) != 2 || strlen(argv[2]) != 2) {
+			printf("Fatal Error: Invalid flags\n");
 			exit(0);
 		}
-		flag = argv[2][1];
+		if ((argv[1][1] != 'R' || argv[1][1] != 'c') && argv[1][0] != '-') {
+			printf("Fatal Error: Invalid flags\n");	
+			exit(0);
+		}
+		if (argv[1][1] == 'R') {
+			if (strlen(argv[2]) != 2) {
+				printf("Fatal Error: Invalid Flags\n");
+				exit(0);
+			}
+			if (argv[2][0] != '-' || argv[2][1] != 'c') {
+				printf("Fatal Error: Invalid flags\n");
+				exit(0);
+			}
+		} else if (argv[1][1] == 'c') {
+			if (strlen(argv[2]) != 2) {
+				printf("Fatal Error: Invalid flags\n");
+				exit(0);
+			}
+			if (argv[2][0] != '-' || argv[2][1] != 'R') {
+				printf("Fatal Error: Invalid Flags\n");
+				exit(0);
+			}
+		}
+		int fd1 = open(argv[3],O_RDONLY);
+		int fd2 = open(argv[4],O_RDONLY);
+		if (fd1 == -1 || fd2 == -1) {
+			printf("Fatal Error: Invalid directory or codebook\n");
+			exit(0);
+		}
+		close(fd1);
+		close(fd2);
 		recursive = true;
-	}
-	if (flag != 'b' || flag != 'c' || flag != 'd') {
-		printf("Fatal Error: %c is not a valid flag\n");
+		flag = 'c';
+	} else {
+		printf("Fatal Error: expected between 3 and 5 arguments\n");
 		exit(0);
 	}
-	
-	printf("flag is %c\n", argv[2][1]);
+	printf("flag is %c\n", flag);
+	printf("recursive is %d\n",recursive);
 	//call flag functions
 	if (recursive) {
 		if (flag == 'b') {
-			listDirectories(argv[3],0);
+			listDirectories(argv[3],0,NULL);
 			int fd;
 			printf("location of codebook is: ./\n");
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
@@ -197,10 +250,11 @@ int main(int argc, char** argv) {
 			freeHeap();
 		} else if (flag == 'c') {
 			tableInit(1000);
-			listDirectories(argv[3],1);
+			listDirectories(argv[3],1,argv[4]);
 			tableFree(1000);
 		} else if (flag == 'd') {
-			printf("error\n");	
+			printf("Error: Cannot run recursive call on decompress\n");
+			exit(0);	
 		}
 	} else {
 		if (flag == 'b') {
@@ -228,11 +282,11 @@ int main(int argc, char** argv) {
 			freeHeap();
 		} else if (flag == 'c') {
 			tableInit(1000);
-			compress(argv[2]);
+			compress(argv[2],argv[3]);
 			tableFree(1000);
 		} else if (flag == 'd') {
 			tableInit(1000);
-			decompress(argv[2]);
+			decompress(argv[2],argv[3]);
 			tableFree(1000);
 		}
 	}
@@ -439,9 +493,13 @@ void buildHuff() {
 	}
 	
 }
-void compress(char* toCompress) {
+void compress(char* toCompress,char* huffBook) {
 	int codebook;
-	codebook = open("./HuffmanCodebook", O_RDONLY);
+	codebook = open(huffBook, O_RDONLY);
+	if (codebook == -1 || compareString("./HuffmanCodebook\0",huffBook) != 0) {
+		printf("Fatal Error: Invalid codebook name, should be of type './HuffmanCodebook'\n");
+		exit(0);	
+	}
 	readHuff(codebook,true);
 	int compressed;
 	char* newFile = combineString(toCompress,".hcz");
@@ -524,11 +582,15 @@ void writeTo(int fd,char* word) {
 		bytesWritten = write(fd,word,bytestoWrite-bytesWritten);
 	}
 }
-void decompress(char* toDecompress) {
+void decompress(char* toDecompress,char* huffBook) {
 	//maybe better to just read in entire binary of file into one really large string
 	//then parse the entire string one thing at a time and right to file accordingly
 	int codebook;
-	codebook = open("./HuffmanCodebook", O_RDONLY);
+	codebook = open(huffBook, O_RDONLY);
+	if (codebook == -1 || compareString("./HuffmanCodebook\0",huffBook) != 0) {
+		printf("Fatal Error: Invalid codebook used, should be of './HuffmanCodebook'\n");
+		exit(0);
+	}
 	readHuff(codebook,false);
 	int decompressed;
 	char* output = substring(toDecompress,0,(strlen(toDecompress)-4));
@@ -730,7 +792,7 @@ void heapify2(int i) {
 		heapify2(small);
 	}
 }
-void listDirectories(char* path,int mode) {
+void listDirectories(char* path,int mode,char* huffBook) {
 		
 	DIR *d;
 	struct dirent *dir;
@@ -746,7 +808,7 @@ void listDirectories(char* path,int mode) {
 			char* temp = combineString(path,"/");
 			temp = combineString(temp,dir->d_name);
 			printf("temp is: %s\n", temp);
-			listDirectories(temp,mode);
+			listDirectories(temp,mode,huffBook);
 		} else {
 			
 			char* temp = combineString(path,"/");
@@ -754,7 +816,7 @@ void listDirectories(char* path,int mode) {
 			if (mode == 0) { //build
 				readFile(temp);
 			} else if (mode == 1) {//compress
-				compress(temp);
+				compress(temp,huffBook);
 				printf("modemode:%s\n",temp);
 			}
 			printf("file: %s\n",dir->d_name);
