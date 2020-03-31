@@ -12,7 +12,7 @@
 //Making an array of BSTNodes is as follows:
 //	Node** <arrname> = (Node**)malloc(<size of arr> * sizeof(Node*))
 //		loop through and malloc each individual Node* using previous malloc
-//Bugs to fix:escape character,freeing
+//Bugs to fix:freeing
 typedef enum boolin { true = 1, false = 0}boolean;
 typedef enum _fMode {BUILD = 2, COMPRESS = 1, DECOMPRESS = 0}fMode;
 
@@ -62,7 +62,7 @@ char* copyString(char*,char*);//copies a string from another word and properly i
 char* combineString(char*,char*); //combines two strings and returns combined string: String result = str1+str2;
 char* substring(char*,int,int); //cuts a string starting from a certain index
 int compareString(char*,char*);//compares two strings and returns a negative number if the first one is lesser, and a pos number if the first one is greater 
-void readFile(char*);//reads data from a file, used for the -b flag
+boolean readFile(char*);//reads data from a file, used for the -b flag
 void listDirectories(char*,int,char*);//lists all directories and calls readFile() on all the files, used for the -b flag
 void compress(char*,char*);//compresses all the data from a .txt file and outputs a .txt.hcz file with the compressed data
 void decompress(char*,char*);
@@ -222,13 +222,16 @@ int main(int argc, char** argv) {
 	printf("recursive is %d\n",recursive);
 	//call flag functions
 	if (recursive) {
+		DIR *d;
+		if (!(d = opendir(argv[3]))) {
+			printf("Fatal Error: Invalid Directory\n");
+			exit(0);
+		}
 		if (flag == 'b') {
 			listDirectories(argv[3],0,NULL);
 			int fd;
 			printf("location of codebook is: ./\n");
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
-			int a = write(fd, "!", 1);
-			int b = write(fd, "\n",1);
 
 			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 			
@@ -256,12 +259,17 @@ int main(int argc, char** argv) {
 		if (flag == 'b') {
 			char* path = argv[2]; //all files within this directory will be indexed into HuffmanCodebook
 			printf("path is: %s\n", path);
-			readFile(path);	
+			if (strlen(path) >= 4 && compareString(substring(path,(strlen(path)-4),-1),".hcz\0") == 0) {
+				printf("Error: Cannot compress: %s, the contents of hcz files cannot be built into a codebook\n",path);
+				exit(0);
+			}
+			boolean success = readFile(path);
+			if (success == false) {
+				exit(0);
+			}	
 			int fd;
 			printf("location of codebook is: %s\n\n", path);
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
-			int a = write(fd,"!" , 1);
-			int b = write(fd,"\n",1);
 			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 			
 			heapInit();
@@ -501,6 +509,7 @@ void compress(char* toCompress,char* huffBook) {
 	char lineDelim = '\n';
 	char* holder;
 	boolean moreStuff = false;
+	boolean first = true;
 	while (status > 0) {
 		char buffer[101];
 		memset(buffer,'\0',101);
@@ -512,6 +521,11 @@ void compress(char* toCompress,char* huffBook) {
 			}
 			readIn+= status;
 		}while(readIn < 100);
+		if (first == true && readIn == 0) {
+			printf("Warning: Empty file\n");
+			return;
+		}
+		first = false;
 		int end = 0;
 		int start = 0;
 		while (end < 100) {
@@ -522,12 +536,20 @@ void compress(char* toCompress,char* huffBook) {
 					if (strlen(holder) != 0) {
 						holder = combineString(holder,temp);
 						char* binInsert = hashSearch(holder,NULL,true);
+						if (binInsert == NULL) {
+							printf("Error: Word not present in current codebook, rebuild the current codebook according to which files you are trying to compress and rerun\n");
+							exit(0);
+						}
 						writeTo(compressed,binInsert);
 						moreStuff = false;
 					}
 				} else {
 					if (strlen(temp) != 0) {
 						char* binInsert = hashSearch(temp,NULL,true);
+						if (binInsert == NULL) {
+							printf("Error: Word not present in current codebook, rebuild the current codebook according to which files you are trying to compress and rerun\n");
+							exit(0);
+						}
 						writeTo(compressed,binInsert);
 					}
 				}
@@ -535,13 +557,14 @@ void compress(char* toCompress,char* huffBook) {
 				char* binInsert2;
 				if (buffer[end] == tabDelim) {
 					binInsert2 = hashSearch("\t\0",NULL,true);//one tab represents tab literal
-					//binInsert2 = hashSearch("!t\0",NULL,true);
 				} else if (buffer[end] == spaceDelim) {
 					binInsert2 = hashSearch("\t\t\0",NULL,true);//two tabs represents space
-					//binInsert2 = hashSearch("!s\0",NULL,true);
 				} else if (buffer[end] == lineDelim) {
 					binInsert2 = hashSearch("\t\t\t\0",NULL,true);//three tabs represents line
-					//binInsert2 = hashSearch("!n\0",NULL,true);
+				}
+				if (binInsert2 == NULL) {
+					printf("Error: Word not present in current codebook, rebuild the current codebook according to which files you are trying to compress and rerun\n");
+					exit(0);
 				}
 				writeTo(compressed,binInsert2);
 				start = end+1;
@@ -573,8 +596,6 @@ void writeTo(int fd,char* word) {
 	}
 }
 void decompress(char* toDecompress,char* huffBook) {
-	//maybe better to just read in entire binary of file into one really large string
-	//then parse the entire string one thing at a time and right to file accordingly
 	int codebook;
 	codebook = open(huffBook, O_RDONLY);
 	if (codebook == -1 || compareString("./HuffmanCodebook\0",huffBook) != 0) {
@@ -595,6 +616,8 @@ void decompress(char* toDecompress,char* huffBook) {
 	char lineDelim = '\n';
 	char* holder;
 	boolean moreStuff = false;
+	boolean inserted = true;
+	boolean first = true;
 	while (status > 0) {
 		char buffer[101];
 		memset(buffer,'\0',101);
@@ -606,14 +629,18 @@ void decompress(char* toDecompress,char* huffBook) {
 			}
 			readIn+= status;
 		}while(readIn < 100);
+		if (first == true && readIn == 0) {
+			printf("Warning: Empty file\n");
+			exit(0);
+		}
+		first = false;
 		int end = 0;
 		int start = 0;
-		//printf("bufffer:%s\n",buffer);
 		while (end < 100) {
 			char* temp;
 			char* word;
 			temp = substring(buffer,start,end);
-			//printf("val of temp:%s\n",temp);
+			inserted = false;
 			if (moreStuff) {
 				holder = combineString(holder,temp);
 				word = hashSearch(NULL,holder,false);
@@ -624,19 +651,16 @@ void decompress(char* toDecompress,char* huffBook) {
 				word = hashSearch(NULL,temp,false);	
 			}
 			if (word != NULL) {
-				//printf("word:%s\n",word);
-				//if (compareString(word,"!t\0") == 0) {
 				if (compareString(word,"\t\0") == 0) { //one tab represents tab literal
 					writeTo(decompressed,"\t\0");
 				} else if (compareString(word,"\t\t\0") == 0) { //two tabs represents space
-				//else if (compareString(word,"!s\0") == 0) {
 					writeTo(decompressed," \0");
 				} else if (compareString(word,"\t\t\t\0") == 0) { //three tabs represents new line
-				//else if (compareString(word,"!n\0") == 0) {
 					writeTo(decompressed,"\n\0");
 				} else {
 					writeTo(decompressed,word);
 				}
+				inserted = true;
 				start = end;
 			}	
 			if (end == 99) {
@@ -653,6 +677,10 @@ void decompress(char* toDecompress,char* huffBook) {
 			end++;
 		}
 		
+	}
+	if (inserted == false) {
+		printf("Error: Could not compress file entirely, an invalid codebook was used, rebuild and try again.\n");
+		exit(0);	
 	}		
 	close(fileParse);
 }
@@ -679,22 +707,15 @@ void readHuff(int codebook,boolean compBool) {
 		while (end < 100) {
 			char* temp;
 			if (buffer[end] == lineDelim) {
-				if (first) {	
-					start = end + 1;
-					end++;
-					first = false;
-					continue;
+				temp = substring(buffer,start,end);
+				if (moreStuff) {
+					holder = combineString(holder,temp);
+					moreStuff = false;
+					storeHuff(holder,compBool);
 				} else {
-					temp = substring(buffer,start,end);
-					if (moreStuff) {
-						holder = combineString(holder,temp);
-						moreStuff = false;
-						storeHuff(holder,compBool);
-					} else {
-						storeHuff(temp,compBool);
-					}
-					start = end + 1;
+					storeHuff(temp,compBool);
 				}
+				start = end + 1;
 				free(temp);
 			} 
 			if (end == 99) {
@@ -794,17 +815,24 @@ void listDirectories(char* path,int mode,char* huffBook) {
 			if (compareString(dir->d_name,".") == 0 || compareString(dir->d_name,"..") == 0) {
 				continue;
 			}
-			printf("folder: %s\n",dir->d_name);
+			//printf("folder: %s\n",dir->d_name);
 			char* temp = combineString(path,"/");
 			temp = combineString(temp,dir->d_name);
-			printf("temp is: %s\n", temp);
+			//printf("temp is: %s\n", temp);
 			listDirectories(temp,mode,huffBook);
 		} else {
 			
 			char* temp = combineString(path,"/");
 			temp = combineString(temp,dir->d_name);
 			if (mode == 0) { //build
-				readFile(temp);
+				if (strlen(temp) >= 4 && compareString(substring(temp,(strlen(temp)-4),-1),".hcz\0") == 0) {
+					printf("Error: Cannot compress: %s, the contents of hcz files cannot be built into a codebook\n",temp);
+					continue;
+				}
+				boolean success = readFile(temp);
+				if (success == false) {
+					continue;
+				}
 			} else if (mode == 1) {//compress
 				if (compareString(substring(temp,(strlen(temp)-4),-1),".hcz\0") == 0) {
 					printf("Error: Cannot compress: %s, .hcz files are already compressed\n",temp);
@@ -818,7 +846,7 @@ void listDirectories(char* path,int mode,char* huffBook) {
 	closedir(d);
 }
 
-void readFile(char* fileName) {
+boolean readFile(char* fileName) {
 	int fileParse = open(fileName, O_RDONLY);
 	int status = 1;
 	int bytesRead = 0;
@@ -827,6 +855,7 @@ void readFile(char* fileName) {
 	char lineDelim = '\n';
 	char* holder;
 	boolean moreStuff = false;
+	boolean first = true;
 	while (status > 0) {
 		char buffer[101];
 		memset(buffer,'\0',101);
@@ -838,24 +867,23 @@ void readFile(char* fileName) {
 			}
 			readIn+= status;
 		}while(readIn < 100);
+		if (first == true && readIn == 0) {
+			printf("Warning: Empty file\n");
+			return false;
+		}
+		first = false;
 		int end = 0;
 		int start = 0;
 		while (end < 100) {
-			if (buffer[end] == '\0') {
-				break;	
-			}
 			char* temp;
 			if (buffer[end] == tabDelim || buffer[end] == spaceDelim || buffer[end] == lineDelim) {
 				temp = substring(buffer,start,end);
 				if (buffer[end] == tabDelim) {
 					bstInsert("\t\0");//one tab represents tab
-					//bstInsert("!t\0");
 				} else if (buffer[end] == spaceDelim) {
 					bstInsert("\t\t\0");//two tabs represents space
-					//bstInsert("!s\0");
 				} else if (buffer[end] == lineDelim) {
 					bstInsert("\t\t\t\0");//three tabs represents newLine
-					//bstInsert("!n\0");
 				}
 				if (moreStuff) {
 					holder = combineString(holder,temp);
@@ -880,11 +908,14 @@ void readFile(char* fileName) {
 				}
 				moreStuff = true;
 			}
+			if (buffer[end] == '\0') {
+				break;	
+			}
 			end++;
 		}	
 	}	
-		
 	close(fileParse);
+	return true;	
 }
 
 void heapInit() {
@@ -1011,7 +1042,6 @@ void printhuffTree(Node* ptr,int* codeArr,int index,int fd) {
 
 	if (!(ptr->left) && !(ptr->right)) {
 		char* codeWord;
-		//printf("%s: ",ptr->word);
 		codeWord = printArr(codeArr,index);
 		int bytesWritten = 0;
 		char* combinedWord = combineString(codeWord,"\t");
@@ -1021,22 +1051,13 @@ void printhuffTree(Node* ptr,int* codeArr,int index,int fd) {
 			bytesWritten = write(fd,combinedWord,bytestoWrite-bytesWritten);
 		}
 		int t = write(fd,"\n",1);
-	}/*
-	if (ptr->freqSet) {
-		printf("NUM_NODE: %d\n",ptr->freq);
-	} else {
-		printf("WORD_NODE: %s\n",ptr->word);
 	}
-	printhuffTree(ptr->left);
-	printhuffTree(ptr->right);
-	*/
 }
 void printBst(Node* ptr) {
 	if (ptr == NULL) {
 		return;
 	}
 	printBst(ptr->left);
-	//printf("BST_NODE: %s: %d\n",ptr->word,ptr->freq);
 	heapArr[heapCount].word = copyString(heapArr[heapCount].word,ptr->word);
 	heapArr[heapCount].freq = ptr->freq;
 	heapCount++;
