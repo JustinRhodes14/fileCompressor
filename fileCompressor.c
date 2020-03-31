@@ -97,10 +97,6 @@ hashTable* table;
 int hashElements = 0;//number of elements in hashTable
 int hashSize = 0; //size of hash table
 
-char* escapeChar = "!\0";
-
-
-
 int main(int argc, char** argv) {
 	//need to finish error checks tmrw b4 doin anything	
 	char flag;
@@ -386,7 +382,6 @@ char* hashSearch(char* word, char* binary,boolean compress) {
 		hashNode* temp2 = temp;
 		while (temp2) {
 			if (compareString(temp2->word,word) == 0) {
-				//printf("Found word:%s, returning binary: %s\n",temp2->word,temp2->binary);
 				return temp2->binary;
 			}
 			temp2 = temp2->next;
@@ -397,7 +392,6 @@ char* hashSearch(char* word, char* binary,boolean compress) {
 		hashNode* temp2 = temp;
 		while (temp2) {
 			if (compareString(temp2->binary,binary) == 0) {
-				//printf("Found binary:%s, returning word: %s\n",temp2->binary,temp2->word);
 				return temp2->word;
 			}
 			temp2 = temp2->next;
@@ -420,7 +414,6 @@ char* printArr(int* arr,int index) {
 	int i;
 	char* codeWord = (char*)malloc(index * sizeof(char) + 1);
 	for (i = 0; i < index;++i) {
-		//printf("%d",arr[i]);
 		if (arr[i] == 0) {
 			codeWord[i] = '0';
 		} else {
@@ -428,7 +421,6 @@ char* printArr(int* arr,int index) {
 		}
 	}	
 	codeWord[index] = '\0';
-	//printf("\n");
 	return codeWord;
 }
 
@@ -436,9 +428,7 @@ void buildHuff() {
 	while (heapSize > 1) {
 		int sum = 0;
 		heapItem item1 = poll();
-		//printf("i1: %s:%d\n",item1.word,item1.freq);
 		heapItem item2 = poll();
-		//printf("i2: %s:%d\n",item2.word,item2.freq);
 		sum = item1.freq + item2.freq;
 		Node* tree = (Node*)malloc(sizeof(Node));
 		tree->freq = sum;
@@ -447,8 +437,6 @@ void buildHuff() {
 		if (item1.isTree && item2.isTree) {
 			tree->left = item1.tree;
 			tree->right = item2.tree;
-		//	printf("treeleft: %s,\n",tree->left->word);
-		//	printf("treeright: %s,\n",tree->right->word);
 		} else if (item1.isTree) {
 			Node* t2 = (Node*)malloc(sizeof(Node));
 			t2->freqSet = false;
@@ -458,8 +446,6 @@ void buildHuff() {
 			t2->right = NULL;
 			tree->left = item1.tree;
 			tree->right = t2;
-		//	printf("treeleft: %s,\n",tree->left->word);
-		//	printf("treeright: %s,\n",tree->right->word);
 		} else if (item2.isTree) {
 			Node* t1 = (Node*)malloc(sizeof(Node));
 			t1->freqSet = false;
@@ -469,8 +455,6 @@ void buildHuff() {
 			t1->right = NULL;
 			tree->left = t1;
 			tree->right = item2.tree;
-		//	printf("treeleft: %s,\n",tree->left->word);
-		//	printf("treeright: %s,\n",tree->right->word);
 		} else {
 			Node* t1 = (Node*)malloc(sizeof(Node));
 			t1->word = copyString(t1->word,item1.word);
@@ -486,8 +470,6 @@ void buildHuff() {
 			t2->right = NULL;
 			tree->left = t1;
 			tree->right = t2;
-		//	printf("treeleft: %s,\n",tree->left->word);
-		//	printf("treeright: %s,\n",tree->right->word);
 		}
 		heapItem toInsert = heapArr[heapSize];
 		toInsert.freq = sum;
@@ -495,9 +477,6 @@ void buildHuff() {
 		toInsert.tree = tree;
 		toInsert.isTree = true;
 		heapInsert(toInsert);
-		//printf("val of tree: %d\n",tree->freq);
-		//printf("val of lchild: %s:%d\n",tree->left->word,tree->left->freq);
-		//printf("val of rchild: %s:%d\n",tree->right->word,tree->right->freq);
 	}
 	
 }
@@ -555,11 +534,14 @@ void compress(char* toCompress,char* huffBook) {
 				free(temp);
 				char* binInsert2;
 				if (buffer[end] == tabDelim) {
-					binInsert2 = hashSearch("!t\0",NULL,true);
+					binInsert2 = hashSearch("\t\0",NULL,true);//one tab represents tab literal
+					//binInsert2 = hashSearch("!t\0",NULL,true);
 				} else if (buffer[end] == spaceDelim) {
-					binInsert2 = hashSearch("!s\0",NULL,true);
+					binInsert2 = hashSearch("\t\t\0",NULL,true);//two tabs represents space
+					//binInsert2 = hashSearch("!s\0",NULL,true);
 				} else if (buffer[end] == lineDelim) {
-					binInsert2 = hashSearch("!n\0",NULL,true);
+					binInsert2 = hashSearch("\t\t\t\0",NULL,true);//three tabs represents line
+					//binInsert2 = hashSearch("!n\0",NULL,true);
 				}
 				writeTo(compressed,binInsert2);
 				start = end+1;
@@ -643,11 +625,14 @@ void decompress(char* toDecompress,char* huffBook) {
 			}
 			if (word != NULL) {
 				//printf("word:%s\n",word);
-				if (compareString(word,"!t\0") == 0) {
+				//if (compareString(word,"!t\0") == 0) {
+				if (compareString(word,"\t\0") == 0) { //one tab represents tab literal
 					writeTo(decompressed,"\t\0");
-				} else if (compareString(word,"!s\0") == 0) {
+				} else if (compareString(word,"\t\t\0") == 0) { //two tabs represents space
+				//else if (compareString(word,"!s\0") == 0) {
 					writeTo(decompressed," \0");
-				} else if (compareString(word,"!n\0") == 0) {
+				} else if (compareString(word,"\t\t\t\0") == 0) { //three tabs represents new line
+				//else if (compareString(word,"!n\0") == 0) {
 					writeTo(decompressed,"\n\0");
 				} else {
 					writeTo(decompressed,word);
@@ -674,8 +659,6 @@ void decompress(char* toDecompress,char* huffBook) {
 void readHuff(int codebook,boolean compBool) {
 	int status = 1;
 	int bytesRead = 0;
-	char tabDelim = '\t';
-	char spaceDelim = ' ';
 	char lineDelim = '\n';
 	char* holder;
 	boolean moreStuff = false;
@@ -865,14 +848,14 @@ void readFile(char* fileName) {
 			if (buffer[end] == tabDelim || buffer[end] == spaceDelim || buffer[end] == lineDelim) {
 				temp = substring(buffer,start,end);
 				if (buffer[end] == tabDelim) {
-					//bstInsert(combineString(escapeChar,"t\0");
-					bstInsert("!t\0");
+					bstInsert("\t\0");//one tab represents tab
+					//bstInsert("!t\0");
 				} else if (buffer[end] == spaceDelim) {
-					//bstInsert(combineString(escapeChar,"s\0");
-					bstInsert("!s\0");
+					bstInsert("\t\t\0");//two tabs represents space
+					//bstInsert("!s\0");
 				} else if (buffer[end] == lineDelim) {
-					//bstInsert(combineString(escapeChar,"n\0");
-					bstInsert("!n\0");
+					bstInsert("\t\t\t\0");//three tabs represents newLine
+					//bstInsert("!n\0");
 				}
 				if (moreStuff) {
 					holder = combineString(holder,temp);
