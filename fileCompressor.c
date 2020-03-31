@@ -729,7 +729,6 @@ void readHuff(int codebook,boolean compBool) {
 		}
 		
 	}
-	printf("\ndonereading\n\n");	
 	close(codebook);
 }
 
@@ -829,9 +828,8 @@ void listDirectories(char* path,int mode,char* huffBook) {
 					continue;
 				}
 				compress(temp,huffBook);
-				printf("modemode:%s\n",temp);
 			}
-			printf("file: %s\n",dir->d_name);
+			printf("file read: %s\n",dir->d_name);
 		}
 	}
 	closedir(d);
