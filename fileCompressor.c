@@ -282,6 +282,10 @@ int main(int argc, char** argv) {
 			freeHeap();
 		} else if (flag == 'c') {
 			tableInit(1000);
+			if (compareString(substring(argv[2],(strlen(argv[2])-4),-1),".hcz\0") == 0) {
+				printf("Error: Cannot compress .hcz files as they are already compressed\n");
+				exit(0);
+			}
 			compress(argv[2],argv[3]);
 			tableFree(1000);
 		} else if (flag == 'd') {
@@ -820,6 +824,10 @@ void listDirectories(char* path,int mode,char* huffBook) {
 			if (mode == 0) { //build
 				readFile(temp);
 			} else if (mode == 1) {//compress
+				if (compareString(substring(temp,(strlen(temp)-4),-1),".hcz\0") == 0) {
+					printf("Error: Cannot compress: %s, .hcz files are already compressed\n",temp);
+					continue;
+				}
 				compress(temp,huffBook);
 				printf("modemode:%s\n",temp);
 			}
