@@ -285,6 +285,10 @@ int main(int argc, char** argv) {
 			compress(argv[2],argv[3]);
 			tableFree(1000);
 		} else if (flag == 'd') {
+			if (strlen(argv[2]) < 4 || compareString(substring(argv[2],(strlen(argv[2]) - 4), -1),".hcz\0") != 0) {
+				printf("Fatal Error: %s is an invalid file, must call decompress on .hcz files\n",argv[2]);
+				exit(0);
+			} 
 			tableInit(1000);
 			decompress(argv[2],argv[3]);
 			tableFree(1000);
