@@ -632,15 +632,17 @@ void decompress(char* toDecompress,char* huffBook) {
 			printf("Warning: Empty file\n");
 			exit(0);
 		}
+		printf("val of buffer:%s\n",buffer);
 		first = false;
 		int end = 0;
 		int start = 0;
-		while (end < 100) {
+		while (end < 100) {//might be better to just read in one byte at a time for this since file is really small
 			char* temp;
 			char* word;
 			temp = substring(buffer,start,end);
 			if (moreStuff) {
 				holder = combineString(holder,temp);
+				//printf("val of holder:%s\n",holder);
 				word = hashSearch(NULL,holder,false);
 				if (word != NULL) {
 					moreStuff = false;
@@ -649,6 +651,8 @@ void decompress(char* toDecompress,char* huffBook) {
 				word = hashSearch(NULL,temp,false);	
 			}
 			if (word != NULL) {
+				printf("val of buffer: %s\n",buffer);
+				printf("val of word: %s\n",word);
 				if (compareString(word,"\t\0") == 0) { //one tab represents tab literal
 					writeTo(decompressed,"\t\0");
 				} else if (compareString(word,"\t\t\0") == 0) { //two tabs represents space
@@ -659,9 +663,9 @@ void decompress(char* toDecompress,char* huffBook) {
 					writeTo(decompressed,word);
 				}
 				start = end;
-			}	
+			}
 			if (end == 99) {
-				if (moreStuff) {
+				if (moreStuff == true) {
 				holder = combineString(holder,buffer);
 				} else {
 				holder = substring(buffer,start,-1);
