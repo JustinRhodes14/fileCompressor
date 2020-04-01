@@ -616,7 +616,6 @@ void decompress(char* toDecompress,char* huffBook) {
 	char lineDelim = '\n';
 	char* holder;
 	boolean moreStuff = false;
-	boolean inserted = true;
 	boolean first = true;
 	while (status > 0) {
 		char buffer[101];
@@ -640,7 +639,6 @@ void decompress(char* toDecompress,char* huffBook) {
 			char* temp;
 			char* word;
 			temp = substring(buffer,start,end);
-			inserted = false;
 			if (moreStuff) {
 				holder = combineString(holder,temp);
 				word = hashSearch(NULL,holder,false);
@@ -660,7 +658,6 @@ void decompress(char* toDecompress,char* huffBook) {
 				} else {
 					writeTo(decompressed,word);
 				}
-				inserted = true;
 				start = end;
 			}	
 			if (end == 99) {
@@ -678,10 +675,6 @@ void decompress(char* toDecompress,char* huffBook) {
 		}
 		
 	}
-	if (inserted == false) {
-		printf("Error: Could not compress file entirely, an invalid codebook was used, rebuild and try again.\n");
-		exit(0);	
-	}		
 	close(fileParse);
 }
 void readHuff(int codebook,boolean compBool) {
@@ -1044,13 +1037,17 @@ void printhuffTree(Node* ptr,int* codeArr,int index,int fd) {
 		char* codeWord;
 		codeWord = printArr(codeArr,index);
 		int bytesWritten = 0;
-		char* combinedWord = combineString(codeWord,"\t");
-		combinedWord = combineString(combinedWord,ptr->word);
-		int bytestoWrite = strlen(combinedWord);
-		while (bytesWritten < bytestoWrite) {
-			bytesWritten = write(fd,combinedWord,bytestoWrite-bytesWritten);
-		}
-		int t = write(fd,"\n",1);
+		//char* combinedWord = combineString(codeWord,"\t");
+		//combinedWord = combineString(combinedWord,ptr->word);
+		writeTo(fd,codeWord);
+		writeTo(fd,"\t\0");
+		writeTo(fd,ptr->word);
+		writeTo(fd,"\n\0");
+		//int bytestoWrite = strlen(combinedWord);
+		//while (bytesWritten < bytestoWrite) {
+		//	bytesWritten = write(fd,combinedWord,bytestoWrite-bytesWritten);
+		//}
+		//int t = write(fd,"\n",1);
 	}
 }
 void printBst(Node* ptr) {
