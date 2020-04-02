@@ -176,12 +176,12 @@ int main(int argc, char** argv) {
 			}
 			recursive = false;
 		}
-	} else if (argc == 5) { //recursive compress
+	} else if (argc == 5) { //recursive compress/decompress
 		if (strlen(argv[1]) != 2 || strlen(argv[2]) != 2) {
 			printf("Fatal Error: Invalid flags\n");
 			exit(0);
 		}
-		if ((argv[1][1] != 'R' || argv[1][1] != 'c') && argv[1][0] != '-') {
+		if ((argv[1][1] != 'R' || argv[1][1] != 'c' || argv[1][1] != 'd') && argv[1][0] != '-') {
 			printf("Fatal Error: Invalid flags\n");	
 			exit(0);
 		}
@@ -190,11 +190,21 @@ int main(int argc, char** argv) {
 				printf("Fatal Error: Invalid Flags\n");
 				exit(0);
 			}
-			if (argv[2][0] != '-' || argv[2][1] != 'c') {
+			if (argv[2][0] != '-' || (argv[2][1] != 'c' && argv[2][1] != 'd')) {
 				printf("Fatal Error: Invalid flags\n");
 				exit(0);
 			}
-		} else if (argv[1][1] == 'c') {
+			if (argv[2][1] == 'c') {
+				flag = 'c';
+			} else {
+				flag = 'd';
+			}
+		} else if (argv[1][1] == 'c' || argv[1][1] == 'd') {
+			if (argv[1][1] == 'c') {
+				flag = 'c';
+			} else {
+				flag = 'd';
+			}
 			if (strlen(argv[2]) != 2) {
 				printf("Fatal Error: Invalid flags\n");
 				exit(0);
@@ -213,7 +223,6 @@ int main(int argc, char** argv) {
 		close(fd1);
 		close(fd2);
 		recursive = true;
-		flag = 'c';
 	} else {
 		printf("Fatal Error: expected between 3 and 5 arguments\n");
 		exit(0);
@@ -252,8 +261,9 @@ int main(int argc, char** argv) {
 			listDirectories(argv[3],1,argv[4]);
 			tableFree(1000);
 		} else if (flag == 'd') {
-			printf("Error: Cannot run recursive call on decompress\n");
-			exit(0);	
+			tableInit(1000);
+			listDirectories(argv[3],2,argv[4]);
+			tableFree(1000);
 		}
 	} else {
 		if (flag == 'b') {
@@ -617,6 +627,7 @@ void decompress(char* toDecompress,char* huffBook) {
 	char* holder;
 	boolean moreStuff = false;
 	boolean first = true;
+	char* fileText = "";
 	while (status > 0) {
 		char buffer[101];
 		memset(buffer,'\0',101);
@@ -627,57 +638,40 @@ void decompress(char* toDecompress,char* huffBook) {
 				break;
 			}
 			readIn+= status;
-		}while(readIn < 100);
+		}while (readIn < 100);
 		if (first == true && readIn == 0) {
 			printf("Warning: Empty file\n");
-			exit(0);
+			return;
 		}
-		printf("val of buffer:%s\n",buffer);
-		first = false;
-		int end = 0;
-		int start = 0;
-		while (end < 100) {//might be better to just read in one byte at a time for this since file is really small
-			char* temp;
-			char* word;
-			temp = substring(buffer,start,end);
-			if (moreStuff) {
-				holder = combineString(holder,temp);
-				//printf("val of holder:%s\n",holder);
-				word = hashSearch(NULL,holder,false);
-				if (word != NULL) {
-					moreStuff = false;
-				}	
+		first == false;
+		fileText = combineString(fileText,buffer);
+	}
+	int length = strlen(fileText);
+	int start = 0;
+	int end = 0;
+	boolean inserted = true;
+	while (end < length) {
+		char* temp = substring(fileText,start,end);
+		inserted = false;
+		char* word = hashSearch(NULL,temp,false);
+		if (word != NULL) {
+			if (compareString(word,"\t\0") == 0) { //one tab represents tab literal
+				writeTo(decompressed,"\t\0");
+			} else if (compareString(word,"\t\t\0") == 0) { //two tabs represents space
+				writeTo(decompressed," \0");
+			} else if (compareString(word,"\t\t\t\0") == 0) { //three tabs represents new line
+				writeTo(decompressed,"\n\0");
 			} else {
-				word = hashSearch(NULL,temp,false);	
+				writeTo(decompressed,word);
 			}
-			if (word != NULL) {
-				printf("val of buffer: %s\n",buffer);
-				printf("val of word: %s\n",word);
-				if (compareString(word,"\t\0") == 0) { //one tab represents tab literal
-					writeTo(decompressed,"\t\0");
-				} else if (compareString(word,"\t\t\0") == 0) { //two tabs represents space
-					writeTo(decompressed," \0");
-				} else if (compareString(word,"\t\t\t\0") == 0) { //three tabs represents new line
-					writeTo(decompressed,"\n\0");
-				} else {
-					writeTo(decompressed,word);
-				}
-				start = end;
-			}
-			if (end == 99) {
-				if (moreStuff == true) {
-				holder = combineString(holder,buffer);
-				} else {
-				holder = substring(buffer,start,-1);
-				}
-				moreStuff = true;
-			}
-			if (buffer[end] == '\0') {
-				break;	
-			}
-			end++;
+			start = end;
+			inserted = true;
 		}
-		
+		end++;
+	}	
+	if (inserted == false) {
+		printf("Fatal Error: Could not decompress: %s the contents of the file, one or more of the words was not present in the codebook\n",toDecompress);
+		return;
 	}
 	close(fileParse);
 }
@@ -823,7 +817,7 @@ void listDirectories(char* path,int mode,char* huffBook) {
 			temp = combineString(temp,dir->d_name);
 			if (mode == 0) { //build
 				if (strlen(temp) >= 4 && compareString(substring(temp,(strlen(temp)-4),-1),".hcz\0") == 0) {
-					printf("Error: Cannot compress: %s, the contents of hcz files cannot be built into a codebook\n",temp);
+					printf("Warning: Cannot compress: %s, the contents of hcz files cannot be built into a codebook\n",temp);
 					continue;
 				}
 				boolean success = readFile(temp);
@@ -832,10 +826,16 @@ void listDirectories(char* path,int mode,char* huffBook) {
 				}
 			} else if (mode == 1) {//compress
 				if (compareString(substring(temp,(strlen(temp)-4),-1),".hcz\0") == 0) {
-					printf("Error: Cannot compress: %s, .hcz files are already compressed\n",temp);
+					printf("Warning: Cannot compress: %s, .hcz files are already compressed\n",temp);
 					continue;
 				}
 				compress(temp,huffBook);
+			} else if (mode == 2) {//decompress
+				if (compareString(substring(temp,(strlen(temp)-4),-1),".hcz\0") != 0 || strlen(temp) < 4) {
+					printf("Warning: Cannot decompress: %s, can only decompress .hcz files\n",temp);
+					continue;
+				}
+				decompress(temp,huffBook);
 			}
 			printf("file read: %s\n",dir->d_name);
 		}
