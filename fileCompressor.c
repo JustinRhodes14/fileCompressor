@@ -249,7 +249,7 @@ int main(int argc, char** argv) {
 			heapSize = nodeCount;
 			int* codeArr = arrInit(codeArr);
 			constructHeap();
-			printHeap();
+			//printHeap();
 			buildHuff();
 			printhuffTree(heapArr[0].tree,codeArr,0,fd);
 			free(codeArr);
@@ -278,16 +278,16 @@ int main(int argc, char** argv) {
 				exit(0);
 			}	
 			int fd;
-			printf("location of codebook is: %s\n\n", path);
+			printf("location of codebook is: ./\n\n");
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
-			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
+			//printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 			
 			heapInit();
 			printBst(root);
 			heapSize = nodeCount;
 			int* codeArr = arrInit(codeArr);
 			constructHeap();
-			printHeap();
+			//printHeap();
 			buildHuff();
 			printhuffTree(heapArr[0].tree,codeArr,0,fd);
 			free(codeArr);
