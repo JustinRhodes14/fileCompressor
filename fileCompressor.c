@@ -43,8 +43,6 @@ typedef struct _hashTable{
 	hashNode** table;
 }hashTable;
 
-
-
 void heapInit();//initializes the heap with frequencies of -1
 void constructHeap(); //helper function to heapify our stuff
 void heapify(int); //turns our array into a heap
@@ -78,7 +76,7 @@ void storeHuff(char*,boolean);
 void writeTo(int,char*);
 void tableFree(int);
 void treeFree(Node*);
-void freeHeap();
+
 Node* root;//our tree node, initially we store all the values in here and then into our heap
 int nodeCount = 0;//amount of items in our tree
 int heapSize = 0;
@@ -253,9 +251,9 @@ int main(int argc, char** argv) {
 			buildHuff();
 			printhuffTree(heapArr[0].tree,codeArr,0,fd);
 			free(codeArr);
-			free(root);
-			free(huffmanTree);
-			freeHeap();
+			treeFree(root);
+			treeFree(huffmanTree);
+			free(heapArr);
 		} else if (flag == 'c') {
 			tableInit(1000);
 			listDirectories(argv[3],1,argv[4]);
@@ -291,9 +289,9 @@ int main(int argc, char** argv) {
 			buildHuff();
 			printhuffTree(heapArr[0].tree,codeArr,0,fd);
 			free(codeArr);
-			free(root);
-			free(huffmanTree);
-			freeHeap();
+			treeFree(root);
+			treeFree(huffmanTree);
+			free(heapArr);
 		} else if (flag == 'c') {
 			tableInit(1000);
 			if (compareString(substring(argv[2],(strlen(argv[2])-4),-1),".hcz\0") == 0) {
@@ -344,6 +342,7 @@ void treeFree(Node* toFree) {
 	}
 	treeFree(toFree->left);
 	treeFree(toFree->right);
+	free(toFree->word);
 	free(toFree);
 }
 
@@ -850,7 +849,7 @@ boolean readFile(char* fileName) {
 	char tabDelim = '\t';
 	char spaceDelim = ' ';
 	char lineDelim = '\n';
-	char* holder;
+	char* holder = NULL;
 	boolean moreStuff = false;
 	boolean first = true;
 	while (status > 0) {
@@ -886,7 +885,6 @@ boolean readFile(char* fileName) {
 					holder = combineString(holder,temp);
 					if (strlen(holder) != 0) {
 						bstInsert(holder);
-						free(holder);
 						moreStuff = false;
 					}
 				} else {
@@ -911,6 +909,9 @@ boolean readFile(char* fileName) {
 			end++;
 		}	
 	}	
+	if (holder != NULL) {
+		free(holder);
+	}
 	close(fileParse);
 	return true;	
 }
@@ -924,10 +925,6 @@ void heapInit() {
 	}
 }
 	
-void freeHeap() {
-	int i;
-	free(heapArr);
-}
 
 void constructHeap() {
 	int start = (heapSize/2) - 1;
@@ -958,6 +955,7 @@ void heapify(int index) {
 		heapArr[index].word = copyString(heapArr[index].word,tWord);
 		heapArr[index].freq = tFreq;
 		heapify(small);
+		free(tWord);
 	}
 }
 
