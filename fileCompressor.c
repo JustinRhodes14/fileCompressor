@@ -494,7 +494,7 @@ void buildHuff() {
 void compress(char* toCompress,char* huffBook) {
 	int codebook;
 	codebook = open(huffBook, O_RDONLY);
-	if (codebook == -1 || compareString("./HuffmanCodebook\0",huffBook) != 0) {
+	if (codebook == -1 || (compareString("./HuffmanCodebook\0",huffBook) != 0 && compareString("HuffmanCodebook\0",huffBook) != 0)) {
 		printf("Fatal Error: Invalid codebook name, should be of type './HuffmanCodebook'\n");
 		exit(0);	
 	}
@@ -602,7 +602,7 @@ void writeTo(int fd,char* word) {
 void decompress(char* toDecompress,char* huffBook) {
 	int codebook;
 	codebook = open(huffBook, O_RDONLY);
-	if (codebook == -1 || compareString("./HuffmanCodebook\0",huffBook) != 0) {
+	if (codebook == -1 || (compareString("./HuffmanCodebook\0",huffBook) != 0 && compareString("HuffmanCodebook\0",huffBook) != 0)) {
 		printf("Fatal Error: Invalid codebook used, should be of './HuffmanCodebook'\n");
 		exit(0);
 	}

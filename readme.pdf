@@ -1,0 +1,92 @@
+fileCompressor - A user's guide for compressing and decompressing files
+
+Authors: Justin Rhodes (jgr85) & Gregorio Fuerte (grf27)
+
+
+RUNNING THE PROGRAM
+
+In order to run the program, the user must first compile the code by running make, and then the program can be run.
+
+When running the program, the user can use 3 different flags (-b, -c, or -d), and 2 different modes (-R or non recursive). The program can be run in the following ways:
+
+NOTE: Any time a <HuffmanCodebook> is required it must be called from the working directory (i.e for <HuffmanCodebook> you should only use './Huffmancodebook' or 'HuffmanCodebook') (also make sure to type this without putting in the single quotes)
+
+	An example execution of a mode that uses the HuffmanCodebook is as follows: ./fileCompressor -c ./stuff/test1.txt ./HuffmanCodebook   OR ./fileCompressor -d ./moretests/fun.txt HuffmanCodebook
+
+
+	NON-RECURSIVE MODES:
+		BUILD: ./fileCompressor -b <file_name>
+			-This non-recursive mode precedes compress and decompress, in order to compress or decompress your file, you must build a codebook out of the given file first. When running non-recursive build, the file name cannot be a directory otherwise the program will throw a fatal error and stop running. Build scans through the contents of a file, keeping track of the frequencies of all the words, and builds a file called HuffmanCodebook in the same directory as the executable. The codebook will include all the words, delimiters, punctuations, and any mixture of the three, as well as it's respective huffman code.
+		
+		COMPRESS: ./fileCompressor -c <file_name> <HuffmanCodebook>
+			-This non-recursive mode will work for all files except for .hcz files with the Huffmancodebook in the same directory. It will create a new file of the same name with the .hcz extension, writing all words from the original file as their respective huffmancodes into the new .hcz file. If one of the words is not present in the codebook, compress will stop running and will return out of the function, prompting the user to rebuild their codebook and to try running again. Upon successful compression, a .hcz file will be produced with one contiguous binary string.
+		
+
+		DECOMPRESS: ./fileCompressor -d <file_name> <HuffmanCodebook>
+			-This non-recursive mode will only work on .hcz files, given a .hcz file it will traverse through the one contiguous binary string, extracting words when the code is found in the HuffmanCodebook. If the code isn't present in the Huffmancodebook, the program will through an error. Upon successful decompression, a file will be produced without the .hcz extension, and it will contain all the compressed words from the codebook.
+
+	
+	RECURSIVE MODES:
+		BUILD: ./fileCompressor -R -b <directory_name>
+			-The recursive mode of build has the same functionality as the non-recursive mode for build, except it will traverse through an entire directory and all it's files, producing one complete codebook representing codes for strings from all the files read from the directory.
+		
+		
+		COMPRESS: ./fileCompressor -R -c <directory_name> <HuffmanCodebook>
+			-The recursive mode of compress has the same functionality as the non-recursive mode for compress. Running recursive compress will traverse through an entire directory, scanning through all of the files and compressing each file and outputting individual .hcz files for each file read in recursive mode. If the program encounters a file whose words aren't present in the codebook, recursive compress will skip over that file and will throw an error flag and continue running. If the program encounters a .hcz file, it will ignore the file and continue reading through the directory.
+	
+		
+		DECOMPRESS: ./fileCompressor -R -d <directory_name> <HuffmanCodebook>
+			-The recursive mode of decompress has the same functionality as the non-recursive mode for decompress. Running recursive decompress will traverse through an entire directory, scanning through all of the .hcz files and decompressing each .hcz file, outputting individual decompressed files with regards to their original .hcz file. If the program encounters a file's whose binary string cannot be found in the codebook, it will skip over that file and throw an error flag, and continue running. If the program encounters a non .hcz file when traversing, it will ignore the file and continue reading through the directory.
+
+///////////////////////////////////////////
+
+DESIGN & IMPLEMENTATION:
+	
+	For this section, we'll be talking about what went into making the entire project, but breaking it up into the three phases of our code (Build, Compress, & Decompress). Going over each of these, we will discuss the methodology behind our code, as well as the data structures and functions we used.
+
+	DATA STRUCTURES & THEIR FUNCTIONS USED: For this project, we used three different data structures: Hash tables, Binary Search Trees, and Heaps. Each of these data structures came in at different phases in the project, and were important in order to make our code run as efficiently as possible. Belows lists the purpose for our use for these data structures:
+
+		Binary Search Tree: We used BST's when making this project for the Build phase. When scanning through the file and building the codebook, we store all the words and delimiters in a Binary tree, and if a word repeats in the tree, we simply update it's frequency. We found trees to be the most efficient since for the most part, it provides us with O(logn) inserts and search, and makes searching for words in the tree very easy to see if they are already stored. We also use the BST when creating the Huffmantree, which allows us to produce our HuffmanCodebook. It is also important to note that the space complexity of BST's is O(n) which is perfect for our file, since we have to read in and store all words from the file anyways.
+
+		Heap: We used a Heap when making this project for the build phase. After successfully scanning through the file and storing all words and their frequencies within the tree, we created a min heap for all the words present within the binary tree. This was necessary for producing the HuffmanCodebook, as well as creating the HuffmanTree. It provides us with O(logn) inserts and removals, as well as O(n) space with regards to the file read in.
+
+		Hash Table: We used a hash table when making this project for the compress & decompress phase. We scan through the given Huffmancodebook, and store all words and their huffmancodes into the hashtable. We were able to use proper hashcodes for decompress and compress as well, hashing either the binary or the word based on whether or not we were decompressing or compressing. Using a hashtable allows us to hash the codebook according to what phase we are using (Either compress or decompress), and gives us O(1) search time, which is perfect when compressing and decompressing files. The space complexity of our hash table is O(n) as it only holds values from the file, while the rest of the buckets are initialized as NULL if they are not used.
+	
+	FILECOMPRESSOR ALGORITHM & ANALYSIS:
+	
+	BUILD: For build, we took the following steps to successfully output a HuffmanCodebook
+		Algorithm:
+			-Read through all the contents of a file and store all unique words into the BST, if we encounter a duplicate word, we update it's frequency by 1 and continue reading
+			-After storing data into the BST, initalize a heap and store contents of the tree into the heap, and convert the heap into a min heap 
+			-After constructing the min heap, we begin building the huffman tree, polling the top two items from the heap and making them a tree with the frequcency as the root
+			-After constructing the huffman tree, we compute all the codes for given words and write the code and the word into the HuffmanCodebook
+		   Time Analysis: O(logn) inserts into the BST, O(n) inserts into the heap, O(nlogn) polls (deletions) from the heap, O(nlogn) inserts into the heap	TOTAL: O(nlogn) run time
+		   Space Analysis: O(n) space complexity (only storing words once in the heap and BST, everything freed afterwards)	TOTAL: O(n) space complexity
+	
+	COMPRESS: For compress, we took the following steps to successfully output a compressed file (.hcz file)
+		Algorithm:
+			-Initialize a hash table and store all the words and binary strings from the HuffmanCodebook file into the hash table
+			-Create a new file of the same name with the .hcz extension
+			-Read through the contents of the file string by string, storing all strings and delimiters alike
+			-As we encounter words, search for them in the hash table, and write the given binary string into the .hcz file (if the word is not found, an error is thrown)
+			-Following completion, close the file and output a success message saying we had successfully created the .hcz file, or give a proper error message if one occurred
+		
+		   Time Analysis: O(n) inserts into the hashtable with regards to the codebook's words, O(n) hashSearches for each word we see in the file TOTAL: O(n) run time
+		   Space Analysis: O(n) space complexity with regards to the codebook's words	TOTAL: O(n) space complexity
+	
+	DEOCOMPRESS: For decompress, we took the following steps to successfully output a decompressed file
+		Algorithm:
+			-Initialize a hash table and store all the words and binary strings from the Huffmancodebook file into the hashtable
+			-Create a new file without the .hcz file extension
+			-Read through the entire binary string of the file, continuously searching for the current string (based on the sliding window method), if it's present write the word to the file, if not, expand the window of the string we are looking at by 1 and search again
+			-Following completion, close the file and output a success message saying we had successfully created the decompressed file, or give a proper error message if one occured
+		   Time Analysis: O(n) inserts into the hashtable with regards to the codebook's words, O(m) hashSearches with regards to the number of characters in the binary file	TOTAL: O(m+n)
+		   Space Analysis: O(n) space complexity with regards to the codebook's words	TOTAL: O(n) space complexity
+	
+	RECURSIVE: Running recursive with any of the phases in the project will simply just execute each phase multiple times for all files necessary, however, we took some steps in order to save time and space
+		
+		BUILD: For build, we make sure we only make one BST, and output one entire codebook for the project. All files are read and stored in the BST, producing the same run time & space complextiy as the build phase above.
+	
+		COMPRESS: For compress, we use one HuffmanCodebook for all of the files, and read through them each individually, producing the same run time & space complexity as the compress phase above, multiplied by the number of files we compress.
+		
+		DECOMPRESS: For decompress, we use one HuffmanCodebook for all of the files, and read through them each indivudally, producing the same run time & space complexity as the decompress phase above, multiplied by the number of files we decompress.
