@@ -220,9 +220,7 @@ int main(int argc, char** argv) {
 		printf("Fatal Error: expected between 3 and 5 arguments\n");
 		exit(0);
 	}
-	printf("flag is %c\n", flag);
-	printf("recursive is %d\n",recursive);
-	//call flag functions
+	//call respective flag functions
 	if (recursive) {
 		DIR *d;
 		if (!(d = opendir(argv[3]))) {
@@ -234,15 +232,12 @@ int main(int argc, char** argv) {
 			int fd;
 			printf("location of codebook is: ./\n");
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
-
-			printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 			
 			heapInit();
 			printBst(root);
 			heapSize = nodeCount;
 			int* codeArr = arrInit(codeArr);
 			constructHeap();
-			//printHeap();
 			buildHuff();
 			printhuffTree(heapArr[0].tree,codeArr,0,fd);
 			free(codeArr);
@@ -259,9 +254,13 @@ int main(int argc, char** argv) {
 			tableFree(1000);
 		}
 	} else {
+		DIR *d;
+		if ((d = opendir(argv[2]))) {
+			printf("Fatal Error: Invalid file\n");
+			exit(0);
+		}
 		if (flag == 'b') {
 			char* path = argv[2]; //all files within this directory will be indexed into HuffmanCodebook
-			printf("path is: %s\n", path);
 			if (strlen(path) >= 4 && compareString(substring(path,(strlen(path)-4),-1),".hcz\0") == 0) {
 				printf("Error: Cannot compress: %s, the contents of hcz files cannot be built into a codebook\n",path);
 				exit(0);
@@ -273,14 +272,12 @@ int main(int argc, char** argv) {
 			int fd;
 			printf("location of codebook is: ./\n\n");
 			fd = open("./HuffmanCodebook", O_WRONLY | O_CREAT | O_TRUNC,00600);
-			//printf("fd is: %d\n\n", fd); //returns 3 if success, -1 if failed
 			
 			heapInit();
 			printBst(root);
 			heapSize = nodeCount;
 			int* codeArr = arrInit(codeArr);
 			constructHeap();
-			//printHeap();
 			buildHuff();
 			printhuffTree(heapArr[0].tree,codeArr,0,fd);
 			free(codeArr);
@@ -307,6 +304,7 @@ int main(int argc, char** argv) {
 	}
 	return 0;
 }
+//initializes all nodes to NULL,used for compress & decompress phase
 void tableInit(int size) {
 	table = (hashTable*)malloc(sizeof(hashTable));
 	table->size = size;
@@ -317,7 +315,7 @@ void tableInit(int size) {
 	}
 	hashSize = size;
 }
-
+//frees all non-null elements in the table, used for compress & decompress phase
 void tableFree(int size) {
 	int i;
 	for (i = 0; i < size; i++) {
@@ -330,7 +328,7 @@ void tableFree(int size) {
 	}
 	free(table);
 }
-
+//frees all nodes within a given bst, used for build phase
 void treeFree(Node* toFree) {
 	if (toFree == NULL) {
 		return;	
@@ -340,7 +338,7 @@ void treeFree(Node* toFree) {
 	free(toFree->word);
 	free(toFree);
 }
-
+//computes the hashcode of a given binary string, used for compress & decompress phase
 int hashcodeBin(char* binary) {
 	int len = strlen(binary);
 	long int code = 0;
@@ -350,7 +348,7 @@ int hashcodeBin(char* binary) {
 	}
 	return (code % hashSize);
 }
-
+//computes the hashcode of a given string, used for compress & decompress phase
 int hashcodeWord(char* word) {
 	int len = strlen(word);
 	int code = 0;
@@ -360,7 +358,7 @@ int hashcodeWord(char* word) {
 	}
 	return (code % hashSize);
 }
-
+//inserts an item into the hashtable, used for compress & decompress phase
 void hashInsert(char* word, char* binary,boolean compress) {
 	int index = -1;
 	if (compress == true) {
@@ -385,7 +383,7 @@ void hashInsert(char* word, char* binary,boolean compress) {
 	table->table[index] = toInsert;
 
 }
-
+//searches for an item in the hashtable based on whether or not we are compressing or not, used for compress & decompress phase
 char* hashSearch(char* word, char* binary,boolean compress) {
 	int index = -1;
 	if (compress == true) {
@@ -412,7 +410,7 @@ char* hashSearch(char* word, char* binary,boolean compress) {
 	return NULL;//not found
 	
 }
-
+//initializes the array that allows us to compute all the huffman codes,used for the build phase
 int* arrInit(int* arr) {
 	arr = (int*)malloc(nodeCount * sizeof(int));
 	int i;
@@ -421,7 +419,7 @@ int* arrInit(int* arr) {
 	}
 	return arr;
 }
-
+//computes the huffmancode of a given word, used for the build phase
 char* printArr(int* arr,int index) {
 	int i;
 	char* codeWord = (char*)malloc(index * sizeof(char) + 1);
@@ -435,7 +433,7 @@ char* printArr(int* arr,int index) {
 	codeWord[index] = '\0';
 	return codeWord;
 }
-
+//builds the huffmantree for the build phase
 void buildHuff() {
 	while (heapSize > 1) {
 		int sum = 0;
@@ -492,6 +490,7 @@ void buildHuff() {
 	}
 	
 }
+//parses through a given file, converting each string to a binary string and writing it to a new .hcz file (uses given codebook passed through)
 void compress(char* toCompress,char* huffBook) {
 	int codebook;
 	codebook = open(huffBook, O_RDONLY);
@@ -542,7 +541,7 @@ void compress(char* toCompress,char* huffBook) {
 						char* binInsert = hashSearch(holder,NULL,true);
 						if (binInsert == NULL) {
 							printf("Error: Word not present in current codebook, rebuild the current codebook according to which files you are trying to compress and rerun\n");
-							exit(0);
+							return;
 						}
 						writeTo(compressed,binInsert);
 						moreStuff = false;
@@ -552,7 +551,7 @@ void compress(char* toCompress,char* huffBook) {
 						char* binInsert = hashSearch(temp,NULL,true);
 						if (binInsert == NULL) {
 							printf("Error: Word not present in current codebook, rebuild the current codebook according to which files you are trying to compress and rerun\n");
-							exit(0);
+							return;
 						}
 						writeTo(compressed,binInsert);
 					}
@@ -568,7 +567,7 @@ void compress(char* toCompress,char* huffBook) {
 				}
 				if (binInsert2 == NULL) {
 					printf("Error: Word not present in current codebook, rebuild the current codebook according to which files you are trying to compress and rerun\n");
-					exit(0);
+					return;
 				}
 				writeTo(compressed,binInsert2);
 				start = end+1;
@@ -591,7 +590,7 @@ void compress(char* toCompress,char* huffBook) {
 	free(newFile);
 	close(fileParse);
 }
-
+//writes a given word to the given file, used for all phases
 void writeTo(int fd,char* word) {
 	int bytesWritten = 0;
 	int bytestoWrite = strlen(word);
@@ -599,6 +598,7 @@ void writeTo(int fd,char* word) {
 		bytesWritten = write(fd,word,bytestoWrite-bytesWritten);
 	}
 }
+//parses through a given .hcz file, converts binary strings to words and writes to a new file without the .hcz extension
 void decompress(char* toDecompress,char* huffBook) {
 	int codebook;
 	codebook = open(huffBook, O_RDONLY);
@@ -667,6 +667,7 @@ void decompress(char* toDecompress,char* huffBook) {
 		return;
 	}
 }
+//reads the contents of the codebook, and presents them to storeHuff(), used for compress & decompress
 void readHuff(int codebook,boolean compBool) {
 	int status = 1;
 	int bytesRead = 0;
@@ -718,7 +719,7 @@ void readHuff(int codebook,boolean compBool) {
 	}
 	close(codebook);
 }
-
+//stores a given huffman codebook line into a hash table (stores the word and binary seperately), used for compress & decompress phases
 void storeHuff(char* line,boolean comp) {
 	int length = strlen(line);
 	int start = 0;
@@ -735,7 +736,7 @@ void storeHuff(char* line,boolean comp) {
 	free(binary);
 	free(word);
 }
-
+//returns the smallest item within the heap, used for the build phase
 heapItem poll() {
 	if (heapSize == 1) {
 		heapSize--;
@@ -752,7 +753,7 @@ heapItem poll() {
 	return parent;
 
 }
-
+//inserts an item into the heap, used for the build phase
 void heapInsert(heapItem item) {
 	heapSize++;
 	int index = heapSize - 1;
@@ -766,7 +767,7 @@ void heapInsert(heapItem item) {
 		index = parent;
 	}	
 }
-
+//used to update the heap after polling from it, used for the buiuld phase
 void heapify2(int i) {
 	int left = (2 * i) + 1;
 	int right = (2 * i) + 2;
@@ -786,6 +787,7 @@ void heapify2(int i) {
 		heapify2(small);
 	}
 }
+//recursive mode, used to recursively perform flag functions on files
 void listDirectories(char* path,int mode,char* huffBook) {
 		
 	DIR *d;
@@ -834,7 +836,7 @@ void listDirectories(char* path,int mode,char* huffBook) {
 	}
 	closedir(d);
 }
-
+//used to read through a file and build a codebook out of it, returns true or false based on whether or not it was able to read the file or if it was an empty file, used for build phase
 boolean readFile(char* fileName) {
 	int fileParse = open(fileName, O_RDONLY);
 	int status = 1;
@@ -908,7 +910,7 @@ boolean readFile(char* fileName) {
 	close(fileParse);
 	return true;	
 }
-
+//initializes the heap, used for the build phase
 void heapInit() {
 	heapArr = (heapItem*)malloc(nodeCount * sizeof(heapItem));
 	int i;
@@ -918,7 +920,7 @@ void heapInit() {
 	}
 }
 	
-
+//contructs the heap from the items already present in it, used for the build phase
 void constructHeap() {
 	int start = (heapSize/2) - 1;
 	int i;
@@ -926,7 +928,7 @@ void constructHeap() {
 		heapify(i);
 	}
 }
-
+//used in sequence with constructHeap() will ensure all heap properties are followed ,used for the build phase
 void heapify(int index) {
 	int small = index;
 	int left = (index * 2) + 1;
@@ -951,7 +953,7 @@ void heapify(int index) {
 		free(tWord);
 	}
 }
-
+//function used to print out the heap for testing purposes
 void printHeap() {
 	printf("PRINTING HEAP\n");
 	int i;
@@ -960,7 +962,7 @@ void printHeap() {
 	}	
 
 }
-
+//inserts a given word into the BST, used for the build phase and is used in sequence with readFile()
 void bstInsert(char* word) {
 	if (rootSet == false) {
 		root = (Node*)malloc(sizeof(Node));
@@ -1002,7 +1004,7 @@ void bstInsert(char* word) {
 		nodeCount++;
 	}	
 }
-
+//checks to see if a given word is present in the bst, if it's present it will increment it's frequency, otherwise it will do nothing if word is not found
 int bstSearch(char* word) {
 	Node* ptr = root;
 	while (ptr != NULL) {
@@ -1017,6 +1019,7 @@ int bstSearch(char* word) {
 	}
 	return -1;//not found
 }
+//Produces the huffmancodebook and writes all results into the codebook itself
 void printhuffTree(Node* ptr,int* codeArr,int index,int fd) {
 	if (ptr->left) {
 		codeArr[index] = 0;
@@ -1032,19 +1035,13 @@ void printhuffTree(Node* ptr,int* codeArr,int index,int fd) {
 		char* codeWord;
 		codeWord = printArr(codeArr,index);
 		int bytesWritten = 0;
-		//char* combinedWord = combineString(codeWord,"\t");
-		//combinedWord = combineString(combinedWord,ptr->word);
 		writeTo(fd,codeWord);
 		writeTo(fd,"\t\0");
 		writeTo(fd,ptr->word);
 		writeTo(fd,"\n\0");
-		//int bytestoWrite = strlen(combinedWord);
-		//while (bytesWritten < bytestoWrite) {
-		//	bytesWritten = write(fd,combinedWord,bytestoWrite-bytesWritten);
-		//}
-		//int t = write(fd,"\n",1);
 	}
 }
+//Was originally used to print out all the contents of the bst, but is also important for initializing the heap
 void printBst(Node* ptr) {
 	if (ptr == NULL) {
 		return;
@@ -1055,7 +1052,8 @@ void printBst(Node* ptr) {
 	heapCount++;
 	printBst(ptr->right);
 }
-
+//The following are our own string functions used for this project, used to avoid inconistencies and issues with the string library
+//copys a string to a word, from another word
 char* copyString(char* to, char* from) {
 	int length = strlen(from);
 	to = (char*)malloc(length * sizeof(char) + 1);
@@ -1066,7 +1064,7 @@ char* copyString(char* to, char* from) {
 	}
 	return to;
 } 
-
+//combines two strings together and updates length and null terminator properly
 char* combineString(char* str1, char* str2) {
 	int len1 = strlen(str1);
 	int len2 = strlen(str2);
@@ -1084,7 +1082,8 @@ char* combineString(char* str1, char* str2) {
 	}
 	return result;
 }
-
+//computes the substring of a given word, if end = -1 , it will go from start all the way to the end
+//otherwise, function will compute the string from the starting index up until the end (non-inclusive to end character) and will return the string
 char* substring(char* str, int start, int end) {
 	char* result;
 	if (end == -1) {
@@ -1109,7 +1108,7 @@ char* substring(char* str, int start, int end) {
 	}
 	return result;
 }
-
+//compares two strings lexographically
 int compareString(char* str1, char* str2) {
 	int len1 = strlen(str1);
 	int len2 = strlen(str2);
