@@ -1,0 +1,68 @@
+fileCompressor Test Plan - How we know our code works
+
+What we tested for:
+	-In this project there were multiple different things we had to test for, instead of talking about all of them I'll list all of them below, we tested for:
+		1.) Multiple delimiters in a row
+		
+		2.) Reading in words larger than 100 bytes
+		
+		3.) Reading in different escape sequences (!n \n @n etc.)
+		
+		4.) Empty files
+		
+		5.) Files with one word
+		
+		6.) Files with only delimiters
+		
+		7.) Files with more than 1000 words
+		
+		8.) Codebooks containing more than 1000 words
+		
+		9.) Non-.txt files (tested it on our own .c file and it worked)
+		
+		10.) Reading through files in multiple different directories
+		
+		11.) Reading multiple large files in multiple different directories
+		
+		12.) Calling compress on .hcz files, calling build on .hcz files
+		
+		13.) Calling decompress on non .hcz files
+		
+		14.) User misinput (wrong flags, non existent files, non existent codebook)
+		
+		15.) Compressing or decompressing when a word doesn't exist in the codebook (will properly throw an error)
+
+How we tested all these things:
+	-In order to confirm we were getting proper outputs, we built some of the huffman trees from scratch and compared with our codebook, and also created duplicate files and called diff <file1> <file2> | wc and ensured that all testcases outputted the same word count for diff
+	
+	-Below is how we tested for all these things, referring to examples or specific files we used to confirm our program worked
+		
+		1.) In order to test for this, we put multiple tabs in a row, as well as multiple new lines at random spots in the file (including the beginning and the end), we called build,compress,and decompress on these files and found success in all cases. In all cases, our program was able to go through and produce proper outputs for build, compress, and decompress
+		
+		2.) In order to test for this, we put in multiple words whose length was longer than 100, going from 100, to 200, to 300 and so on. We also tested this in sequence with having long words and multiple delimiters, and found success when testing.
+		
+		3.) Since we do not use an escape character, we were easily able to read in all different possible escape sequences (!n, \n, @n, etc.), and properly store them in the codebook, successfully compressing the original file and decompressing it the exact same way.
+		
+		4.) For empty files, we simply pass a warning to the user that the file is empty, and continue scanning through files. Even in recursive mode, our program was able to still read through all files including empty files, and still produce expected outputs.
+	
+		5.) For files with one word, our program properly compiles a codebook and successfully compresses and decompresses the file, producing the expected output.
+		
+		6.)For files with only delimiters, our program worked successfully. We tested this by adding multiple new lines, multiple tabs, and multiple spaces, all of which produced the expected output. Even when doing a mix of all of these, the program still produces expected output and using the diff command showed no difference when comparing the files.
+		
+		7.) In order to test for files with more than 1000 words, we called our program recursively through all the phases on the folder ./moretests, our program successfully stored all the words into the codebook, sucessfully compressed all the files in a reasonable amount of time, as well as successfully decompressed all files into their expected output with no difference when we called diff on the comparison files.
+		
+		8.) For codebooks containing more than 1000 words, our hashtable still held up properly, and was able to store all the words for compressing and decompressing all files necessary, as well as producing their expected outputs.
+		
+		9.) For this, we tested it on hidden files, c files, pdf files, and many more file extensions, for all of which the file compressor was able to process all of these through all phases
+	
+		10.) For reading through files in multiple different directories, we made 5 different subdirectories with individual files in each of them, and our program was able to produce expected output for this case through all the phases of the project.
+		
+		11.) For reading in multiple large files through multiple different directories, our program was able to traverse through all directories properly, and produce expected output for all phases of the program.
+		
+		12.) For calling compress or build on .hcz files, our program produces a proper error and will not compress or build on those files. (Note: the program will continue to traverse through all files in recursive mode, it just won't read through .hcz files)
+		
+		13.) For calling decompress on non .hcz files, our program will output the proper error and will not decompress on those files. (Note: the program will continue to traverse through all files if called in recursive mode, and just won't decompress the non .hcz file)
+		
+		14.) For user inputting wrong flags, non existent files, or non existent codebook, the program will output proper error. We tested this with incorrect letters , no dashes for flags, random words for flags, non existent files, and non existent codebooks
+		
+		15.) Lastly, we tested a user attempting to compress or decompress a file whose word is not present in the codebook, the program will stop traversing through that file and output the appropriate error, but will still keep reading through other files if called recursively.

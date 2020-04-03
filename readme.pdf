@@ -43,7 +43,15 @@ NOTE: Any time a <HuffmanCodebook> is required it must be called from the workin
 DESIGN & IMPLEMENTATION:
 	
 	For this section, we'll be talking about what went into making the entire project, but breaking it up into the three phases of our code (Build, Compress, & Decompress). Going over each of these, we will discuss the methodology behind our code, as well as the data structures and functions we used.
-
+	
+	ESCAPE CHARACTER: For this project, we did not use an escape character, but rather, found an alternative that is much more efficient than attempting to produce a proper escape sequence that does not appear in the file. For handling special delimiters such as the tab, space, or new line, we used the following sequences for each:
+		
+		Tab ('\t'): Represented by one \t (\t)
+		Space (' '): Represented by two \t (\t\t)
+		New line ('\n'): Represented by three \t (\t\t\t)	
+		
+	This allowed for us to properly store all the escape characters individually, without having to account for making up an escape sequence not present in the file. This also did not mess up the formatting of our HuffmanCodebook file, and allowed for us to easily build, compress, and decompress files.
+	
 	DATA STRUCTURES & THEIR FUNCTIONS USED: For this project, we used three different data structures: Hash tables, Binary Search Trees, and Heaps. Each of these data structures came in at different phases in the project, and were important in order to make our code run as efficiently as possible. Belows lists the purpose for our use for these data structures:
 
 		Binary Search Tree: We used BST's when making this project for the Build phase. When scanning through the file and building the codebook, we store all the words and delimiters in a Binary tree, and if a word repeats in the tree, we simply update it's frequency. We found trees to be the most efficient since for the most part, it provides us with O(logn) inserts and search, and makes searching for words in the tree very easy to see if they are already stored. We also use the BST when creating the Huffmantree, which allows us to produce our HuffmanCodebook. It is also important to note that the space complexity of BST's is O(n) which is perfect for our file, since we have to read in and store all words from the file anyways.
