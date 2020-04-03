@@ -97,4 +97,4 @@ DESIGN & IMPLEMENTATION:
 	
 		COMPRESS: For compress, we use one HuffmanCodebook for all of the files, and read through them each individually, producing the same run time & space complexity as the compress phase above, multiplied by the number of files we compress.
 		
-		DECOMPRESS: For decompress, we use one HuffmanCodebook for all of the files, and read through them each indivudally, producing the same run time & space complexity as the decompress phase above, multiplied by the number of files we decompress.
+		DECOMPRESS: For decompress, we use one HuffmanCodebook for all of the files, and read through them each individually, producing the same run time & space complexity as the decompress phase above, multiplied by the number of files we decompress.
