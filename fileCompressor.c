@@ -661,6 +661,7 @@ void decompress(char* toDecompress,char* huffBook) {
 		} 
 		end++;
 	}
+	free(fileText);
 	close(fileParse);
 	if (start != end-1 && start != end-2) {
 		printf("Error: Could not compress all the contents of the file\n");
