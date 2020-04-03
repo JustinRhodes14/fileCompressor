@@ -7,14 +7,7 @@
 #include <dirent.h>
 #include <limits.h>
 #include <math.h>
-//BSTNode structure, to create one follow following format:
-//	Node* <name> = (Node*)malloc(sizeof(Node));
-//Making an array of BSTNodes is as follows:
-//	Node** <arrname> = (Node**)malloc(<size of arr> * sizeof(Node*))
-//		loop through and malloc each individual Node* using previous malloc
-//Bugs to fix:freeing
 typedef enum boolin { true = 1, false = 0}boolean;
-typedef enum _fMode {BUILD = 2, COMPRESS = 1, DECOMPRESS = 0}fMode;
 
 typedef struct bstNode {
 	int freq; //If node is just the combined frequency, only init the freq
@@ -62,24 +55,24 @@ char* substring(char*,int,int); //cuts a string starting from a certain index
 int compareString(char*,char*);//compares two strings and returns a negative number if the first one is lesser, and a pos number if the first one is greater 
 boolean readFile(char*);//reads data from a file, used for the -b flag
 void listDirectories(char*,int,char*);//lists all directories and calls readFile() on all the files, used for the -b flag
-void compress(char*,char*);//compresses all the data from a .txt file and outputs a .txt.hcz file with the compressed data
-void decompress(char*,char*);
+void compress(char*,char*);//compresses all the data from a file and outputs a .hcz file with the compressed data
+void decompress(char*,char*);//decompresses all the data from a given .hcz file and outputs the decompressed file (will overwrite if file already exists)
 int* arrInit(int*);//initializes the array that allows us to compute each huffmancode
 char* printArr(int*,int);//allows for us to store the code into our codebook
 void tableInit(int);//initializes our global hash table
 int hashcodeBin(char*);//computes the hashcode for the binary (used for decompress)
 int hashcodeWord(char*);//computes the hashcode for the word (used for compress)
 void hashInsert(char*,char*,boolean);//inserts binary and word into hashtable
-char* hashSearch(char*,char*,boolean);
-void readHuff(int,boolean);
-void storeHuff(char*,boolean);
-void writeTo(int,char*);
-void tableFree(int);
-void treeFree(Node*);
+char* hashSearch(char*,char*,boolean);//searches up for the binary or codeword in the hashtable based on whether we are or aren't compressing
+void readHuff(int,boolean);//reads in the contents from the huffmancodebook
+void storeHuff(char*,boolean);//stores the contents from the huffmancodebook into a hashtable
+void writeTo(int,char*);//writes data to a given file
+void tableFree(int);//frees all items within our hashtable
+void treeFree(Node*);//frees all nodes within a given bst
 
 Node* root;//our tree node, initially we store all the values in here and then into our heap
 int nodeCount = 0;//amount of items in our tree
-int heapSize = 0;
+int heapSize = 0;//keeps track of our heapSize
 
 boolean rootSet = false;//indicates whether or not root is set
 
@@ -90,15 +83,17 @@ Node* huffmanTree;//used for build, allows us to store our hash items in the cod
 
 char* coding = " ";//used to  encode the binary for huffman
 
-hashTable* table;
+hashTable* table;//used to store huffmancodebook elements
 
 int hashElements = 0;//number of elements in hashTable
 int hashSize = 0; //size of hash table
 
 int main(int argc, char** argv) {
-	//need to finish error checks tmrw b4 doin anything	
 	char flag;
 	boolean recursive = false;
+	//The following sequence of if statements will check each respective mode of the program
+	//and makes sure all given inputs from the command line are properly formatted, will produce
+	//proper errors accordingly (Fatal, normal, or warnings)
 	if (argc == 3) {//non-recursive
 		if (strlen(argv[1]) != 2) {
 			printf("Fatal Error: Invalid flags used\n");
@@ -295,7 +290,7 @@ int main(int argc, char** argv) {
 		} else if (flag == 'c') {
 			tableInit(1000);
 			if (compareString(substring(argv[2],(strlen(argv[2])-4),-1),".hcz\0") == 0) {
-				printf("Error: Cannot compress .hcz files as they are already compressed\n");
+				printf("Fatal Error: Cannot compress .hcz files as they are already compressed\n");
 				exit(0);
 			}
 			compress(argv[2],argv[3]);
@@ -626,6 +621,7 @@ void decompress(char* toDecompress,char* huffBook) {
 	char* holder;
 	boolean moreStuff = false;
 	boolean first = true;
+	boolean inserted = true;
 	char* fileText = "";
 	while (status > 0) {
 		char buffer[101];
@@ -648,10 +644,8 @@ void decompress(char* toDecompress,char* huffBook) {
 	int length = strlen(fileText);
 	int start = 0;
 	int end = 0;
-	boolean inserted = true;
-	while (end < length) {
+	while (end <= length) {
 		char* temp = substring(fileText,start,end);
-		inserted = false;
 		char* word = hashSearch(NULL,temp,false);
 		if (word != NULL) {
 			if (compareString(word,"\t\0") == 0) { //one tab represents tab literal
@@ -664,15 +658,14 @@ void decompress(char* toDecompress,char* huffBook) {
 				writeTo(decompressed,word);
 			}
 			start = end;
-			inserted = true;
-		}
+		} 
 		end++;
-	}	
-	if (inserted == false) {
-		printf("Fatal Error: Could not decompress: %s the contents of the file, one or more of the words was not present in the codebook\n",toDecompress);
-		return;
 	}
 	close(fileParse);
+	if (start != end-1 && start != end-2) {
+		printf("Error: Could not compress all the contents of the file\n");
+		return;
+	}
 }
 void readHuff(int codebook,boolean compBool) {
 	int status = 1;
